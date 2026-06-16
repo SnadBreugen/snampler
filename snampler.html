@@ -178,9 +178,15 @@
   .atitem{font-family:var(--mono);font-weight:700;letter-spacing:.08em;font-size:12px;text-transform:uppercase;color:var(--ink);background:var(--surface);border:1px solid var(--edge);border-radius:9px;padding:11px 13px;margin:6px 0;cursor:pointer;box-shadow:var(--soft)}
   .atitem:hover{border-color:var(--orange)}
   #atUplink.on{border-color:var(--orange);color:var(--orange)}
-  .mod{background:var(--surface);border:1px solid var(--edge);border-radius:11px;padding:11px 18px 12px;box-shadow:var(--soft)}
+  .mod{background:var(--surface);border:1px solid var(--edge);border-radius:11px;padding:11px 13px 12px;box-shadow:var(--soft)}
   .mod h4{margin:0 0 10px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink2);font-weight:700;display:flex;align-items:center;gap:8px}
-  .mod .row{display:flex;gap:18px}
+  .mod .row{display:flex;gap:13px}
+  .mastermount .mod{margin:0;padding:8px 14px 9px}
+  .mastermount .mod h4{margin:0 0 6px}
+  .mastermount .knobwrap{width:64px;height:64px}
+  .fxbartag{flex:1;text-align:center}
+  .choorow{display:flex;gap:12px}
+  .choo{flex:1;justify-content:center;padding:18px 14px;font-size:13px}
   .modsel{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;background:var(--surface);color:var(--ink2);border:1px solid var(--edge);border-radius:5px;padding:1px 3px;cursor:pointer}
   .pwrdot{width:9px;height:9px;border-radius:50%;background:#d7cfbe;cursor:pointer}
   .pwrdot.on{background:var(--orange);box-shadow:0 0 6px var(--orange)}
@@ -242,7 +248,6 @@
     <button class="btn" id="stop" disabled title="Stop and reset the playhead">&#9632; Stop</button>
     <button class="btn" id="loop" style="margin-left:6px" title="Loop on = repeat the marker range while listening. Off = play through once">Loop: off</button>
     <button class="btn" id="import" title="Import a MIDI file: its notes fill the region">Import MIDI</button>
-    <button class="btn" id="atTimeline" title="Import a sample straight from an Audiotool project timeline (needs Uplink)">AT Timeline</button>
     <div class="clearwrap"><button class="btn" id="clear" title="Clear every note from the region: start the line from scratch">Clear</button><span class="sub2">Region</span></div>
   </div>
 
@@ -270,14 +275,12 @@
   <div class="dimcap">SCROLLBAR &middot; DRAG CENTER = SCROLL &middot; DRAG ARROW ENDS = ZOOM &middot; AMBER MARKERS = EXPORT / LOOP RANGE</div>
 
   <div id="rackwrap" style="margin-top:11px">
-    <div class="fxbar"><span>// signal chain</span><button class="btn sm" id="chainbtn" title="SIGNAL CHAIN. Opens the chain order so you can arrange how the effects feed into each other. The modules stay put on screen; only the routing changes. This order is baked into the export too.">&#9776; Order</button></div>
+    <div class="fxbar"><div id="mastermount" class="mastermount"></div><span class="fxbartag">// signal chain</span><button class="btn sm" id="chainbtn" title="SIGNAL CHAIN. Opens the chain order so you can arrange how the effects feed into each other. The modules stay put on screen; only the routing changes. This order is baked into the export too.">&#9776; Order</button></div>
     <div class="rack" id="rack" style="margin:0;gap:14px"></div>
   </div>
 
   <div class="output">
-    <button class="btn" id="export" title="Export the marker range as WAV: drops straight back into Audiotool">Export / WAV</button>
-    <button class="btn" id="atUplink" title="Connect your Audiotool account (opens login) — needed for AT Timeline and Transmit">Uplink</button>
-    <button class="btn" id="atTransmit" disabled title="Render the loop (effect tail already settled) and upload it to your Audiotool sample library">Transmit</button>
+    <button class="btn" id="export" title="Export the marker range: choose disk (WAV) or straight to Audiotool">Export / WAV</button>
     <div class="meter" id="outmeter" title="Output level: live while playing"><i id="meterfill"></i></div>
     <div class="outlbl">Output</div>
   </div>
@@ -312,6 +315,20 @@
     </div>
   </div>
 
+  <div class="modal" id="srcmodal">
+    <div class="modal-card" style="max-width:440px">
+      <h4>Import WAV // Source<span class="seg" style="margin-left:auto"><button class="btn sm" id="srcclose">Close &#10005;</button></span></h4>
+      <div class="dimcap" style="margin-bottom:11px">Where does the sample come from?</div>
+      <div class="choorow"><button class="btn choo" id="srcDisk">From Disk</button><button class="btn choo" id="srcAt">Audiotool Timeline</button></div>
+    </div>
+  </div>
+  <div class="modal" id="expmodal">
+    <div class="modal-card" style="max-width:440px">
+      <h4>Export // Destination<span class="seg" style="margin-left:auto"><button class="btn sm" id="expclose">Close &#10005;</button></span></h4>
+      <div class="dimcap" style="margin-bottom:11px">Where does the loop go? The effect tail is rendered settled from the start either way.</div>
+      <div class="choorow"><button class="btn choo" id="expDisk">To Disk (WAV)</button><button class="btn choo" id="expAt">To Audiotool</button></div>
+    </div>
+  </div>
   <div class="modal" id="atmodal">
     <div class="modal-card" style="max-width:520px">
       <h4>Audiotool // Timeline
@@ -570,19 +587,19 @@ function undo(){if(!undoStack.length)return;redoStack.push(snapshot());applySnap
 function redo(){if(!redoStack.length)return;undoStack.push(snapshot());applySnap(redoStack.pop());}
 
 const fileIn=$('file'),midiIn=$('midifile');
-$('load').onclick=()=>fileIn.click();
+$('load').onclick=()=>$('srcmodal').classList.add('show');
 fileIn.onchange=async e=>{const f=e.target.files[0];if(!f)return;$('st-name').textContent='DECODING...';
   try{const buf=await ac().decodeAudioData(await f.arrayBuffer());installBuffer(buf,f.name.replace(/\.[^.]+$/,''));}catch(err){$('st-name').textContent='DECODE FAILED';}};
 $('import').onclick=()=>midiIn.click();
 midiIn.onchange=async e=>{const f=e.target.files[0];if(!f)return;try{importMidi(await f.arrayBuffer());}catch(err){alert('MIDI parse failed: '+err);}};
 
 function buildRack(){const rack=$('rack');
-  const mk=(title,knobs,dot,sel,fxid)=>{const m=div('mod');if(fxid){m.dataset.fx=fxid;m.classList.add('fxmod');}const h=document.createElement('h4');
+  const mk=(title,knobs,dot,sel,fxid,target)=>{const m=div('mod');if(fxid){m.dataset.fx=fxid;m.classList.add('fxmod');}const h=document.createElement('h4');
     const tt=document.createElement('span');tt.textContent=title;h.append(tt);
     if(sel){const sp=document.createElement('span');sp.style.flex='1';h.append(sp);const se=document.createElement('select');se.className='modsel';if(sel.tip)se.title=sel.tip;sel.options.forEach(o=>{const op=document.createElement('option');op.value=o[0];op.textContent=o[1];if(o[0]===sel.value)op.selected=true;se.append(op);});se.onchange=e=>sel.onChange(e.target.value);h.append(se);}
-    if(dot){const d=div('pwrdot');h.append(d);d.onclick=dot(d);}m.append(h);const row=div('row');knobs.forEach(k=>row.append(makeKnob(k)));m.append(row);rack.append(m);};
+    if(dot){const d=div('pwrdot');h.append(d);d.onclick=dot(d);}m.append(h);const row=div('row');knobs.forEach(k=>row.append(makeKnob(k)));m.append(row);(target||rack).append(m);};
   mk('Output',[{label:'Gain',tip:'Output level: the master volume of the rendered loop',color:'fill',min:0,max:2,value:1,fmt:v=>v.toFixed(2),onInput:v=>{state.fx.gain=v;applyFx(liveFx);}},
-               {label:'Pan',tip:'Stereo position: pans the output left to right',min:-1,max:1,value:0,fmt:v=>v.toFixed(2),onInput:v=>{state.fx.pan=v;applyFx(liveFx);}}]);
+               {label:'Pan',tip:'Stereo position: pans the output left to right',min:-1,max:1,value:0,fmt:v=>v.toFixed(2),onInput:v=>{state.fx.pan=v;applyFx(liveFx);}}],null,null,null,$('mastermount'));
   mk('EQ',[{label:'Low',tip:'Low shelf at 120 Hz: weight in the bottom end (±15 dB)',min:-15,max:15,value:0,fmt:v=>Math.round(v),onInput:v=>{state.fx.eqLo=v;applyFx(liveFx);}},
            {label:'Mid',tip:'Peaking band at 1 kHz: body and presence (±15 dB)',min:-15,max:15,value:0,fmt:v=>Math.round(v),onInput:v=>{state.fx.eqMid=v;applyFx(liveFx);}},
            {label:'High',tip:'High shelf at 8 kHz: air and sparkle on top (±15 dB)',min:-15,max:15,value:0,fmt:v=>Math.round(v),onInput:v=>{state.fx.eqHi=v;applyFx(liveFx);}}],null,null,'eq');
@@ -667,11 +684,12 @@ async function renderLoopWav(){const sr=44100,ls=loopSec(),loopFrames=Math.round
   const ob=new OfflineAudioContext(2,loopFrames,sr),out=ob.createBuffer(2,loopFrames,sr),start=pre*loopFrames;
   for(let ch=0;ch<2;ch++){const sd=rendered.getChannelData(Math.min(ch,rendered.numberOfChannels-1)),dd=out.getChannelData(ch);for(let i=0;i<loopFrames;i++)dd[i]=sd[start+i]||0;}
   return encodeWav(out);}
-$('export').onclick=async()=>{if(!state.buffer)return;$('st-state').textContent='RENDERING';
+async function exportToDisk(){if(!state.buffer)return;$('st-state').textContent='RENDERING';
   try{const blob=await renderLoopWav();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(state.sampleName||'snampler')+'.wav';a.click();URL.revokeObjectURL(url);$('st-state').textContent=state.playing?'PLAYING':'READY';}
-  catch(e){$('st-state').textContent='EXPORT FAILED';}};
+  catch(e){$('st-state').textContent='EXPORT FAILED';}}
+$('export').onclick=()=>{if(!state.buffer)return;$('expmodal').classList.add('show');};
 
-function installBuffer(buf,name){state.buffer=buf;state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;var t=$('atTransmit');if(t)t.disabled=false;updateSmpCap();drawMain();updateMainInfo();}
+function installBuffer(buf,name){state.buffer=buf;state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;updateSmpCap();drawMain();updateMainInfo();}
 
 // ---------- Audiotool (Nexus SDK) ----------
 const AT_CLIENT_ID='6ca4ce9a-461d-44a3-ac32-145930ab799a';
@@ -709,13 +727,19 @@ async function atTransmit(){if(!state.buffer)return;if(!atSession){await atConne
     const up=await c.samples.upload({file,displayName:name,kind:'loop',bpm:state.bpm,tags:['snampler'],visibility:'private',preventTabClose:true});
     if(up instanceof Error)throw up;await up.uploaded;await up.ready;$('st-state').textContent='TRANSMIT DONE \u2014 '+name.toUpperCase();}
   catch(e){$('st-state').textContent='TRANSMIT FAILED';console.error('[AT]',e);}}
-$('atUplink').onclick=()=>atConnect(true);
-$('atTimeline').onclick=async()=>{if(!atSession){await atConnect(true);if(!atSession)return;}$('atstep1').style.display='block';$('atlist').style.display='none';$('atlist').innerHTML='';$('atmsg').textContent='';$('aturl').value='';$('atmodal').classList.add('show');setTimeout(()=>$('aturl').focus(),0);};
+async function openAtTimeline(){if(!atSession){await atConnect(true);if(!atSession)return;}$('atstep1').style.display='block';$('atlist').style.display='none';$('atlist').innerHTML='';$('atmsg').textContent='';$('aturl').value='';$('atmodal').classList.add('show');setTimeout(()=>$('aturl').focus(),0);}
 $('atopen').onclick=()=>{const u=$('aturl').value.trim();if(u)atOpenProject(u);};
 $('aturl').addEventListener('keydown',e=>{if(e.key==='Enter'){const u=$('aturl').value.trim();if(u)atOpenProject(u);}});
 $('atclose').onclick=()=>$('atmodal').classList.remove('show');
 $('atmodal').onpointerdown=e=>{if(e.target.id==='atmodal')$('atmodal').classList.remove('show');};
-$('atTransmit').onclick=atTransmit;
+$('srcDisk').onclick=()=>{$('srcmodal').classList.remove('show');fileIn.click();};
+$('srcAt').onclick=()=>{$('srcmodal').classList.remove('show');openAtTimeline();};
+$('srcclose').onclick=()=>$('srcmodal').classList.remove('show');
+$('srcmodal').onpointerdown=e=>{if(e.target.id==='srcmodal')$('srcmodal').classList.remove('show');};
+$('expDisk').onclick=()=>{$('expmodal').classList.remove('show');exportToDisk();};
+$('expAt').onclick=()=>{$('expmodal').classList.remove('show');atTransmit();};
+$('expclose').onclick=()=>$('expmodal').classList.remove('show');
+$('expmodal').onpointerdown=e=>{if(e.target.id==='expmodal')$('expmodal').classList.remove('show');};
 if(/[?&#](code|state)=/.test(location.search+location.hash))atConnect(false);
 
 window.addEventListener('resize',()=>{buildOverview();renderMarkers();setupWave();drawWave();syncVPort();drawMain();});
