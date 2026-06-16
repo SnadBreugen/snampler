@@ -52,6 +52,18 @@
   .feat-hover.empty{display:none}
   .sntip{position:fixed;z-index:90;display:none;max-width:300px;background:#000;border:1px solid #ffffff;border-radius:6px;color:var(--orange);font-family:var(--mono);font-size:11px;line-height:1.5;letter-spacing:.02em;padding:9px 11px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.55)}
   .sntip.show{display:block}
+  .fbwrap{position:fixed;bottom:18px;right:18px;z-index:80;font-family:var(--mono)}
+  .fbbtn{display:block;margin-left:auto;background:rgba(0,0,0,.4);border:1px solid var(--edge);color:var(--orange);font-family:var(--mono);font-weight:700;font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:9px 14px;border-radius:8px;cursor:pointer;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+  .fbbtn:hover{border-color:var(--orange)}
+  .fbpanel{display:none;width:300px;background:#000;border:1px solid #fff;border-radius:10px;padding:16px;margin-bottom:9px;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+  .fbpanel.open{display:block}
+  .fbttl{font-size:10px;letter-spacing:.2em;color:var(--orange);margin-bottom:14px;text-transform:uppercase}
+  .fbf{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--edge);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 9px;margin-bottom:8px;outline:none;border-radius:7px}
+  textarea.fbf{resize:none}
+  .fbrow{display:flex;gap:8px}
+  .fbsend{flex:1;background:var(--orange);color:#1a1208;border:none;font-family:var(--mono);font-weight:700;font-size:11px;letter-spacing:.12em;padding:9px;cursor:pointer;border-radius:7px}
+  .fbx{background:transparent;border:1px solid var(--edge);color:var(--dim);font-family:var(--mono);font-size:11px;padding:9px 13px;cursor:pointer;border-radius:7px}
+  .fbstatus{font-size:10px;color:var(--orange);margin-top:9px;min-height:13px;letter-spacing:.1em}
   .feat-hover .f-p{color:var(--orange);font-weight:700}
   .feat-hover .fh-txt{color:var(--orange)}
   .feat-cursor{display:inline-block;width:7px;height:12px;background:#ffd24d;margin-left:3px;vertical-align:-1px;animation:fhblink 1s steps(1) infinite}
@@ -223,7 +235,6 @@
 
 <button id="theme" class="themetoggle">&#9681; Dark</button>
 <aside class="feat-panel" id="featPanel"><div class="fh-head">SNAD INDUSTRIES // SNAMPLER</div><div class="feat-lines" id="featLines"></div><div class="feat-hover empty" id="featHover"></div></aside>
-<div class="bg-copy right"><h5>FEEDBACK // SNAD INDUSTRIES</h5>Classic = varispeed character. Granular = freeze, scan and stretch.<div class="row2">The signal continues ///</div></div>
 <div class="case">
   <div class="head">
     <div>
@@ -295,7 +306,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.7.1</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 1.9.0</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -359,6 +370,18 @@
       <div id="atlist" style="display:none"></div>
       <div class="dimcap" id="atmsg" style="margin-top:10px"></div>
     </div>
+  </div>
+
+  <div class="fbwrap">
+    <div class="fbpanel" id="fbpanel">
+      <div class="fbttl">Feedback // Snad Industries</div>
+      <input class="fbf" id="fbName" type="text" placeholder="NAME (OPTIONAL)" spellcheck="false" title="Your name, optional">
+      <input class="fbf" id="fbEmail" type="email" placeholder="EMAIL FOR REPLY (OPTIONAL)" spellcheck="false" title="Email if you want a reply, optional">
+      <textarea class="fbf" id="fbMsg" rows="4" placeholder="YOUR MESSAGE" title="What works, what is broken, what you wish it did"></textarea>
+      <div class="fbrow"><button class="fbsend" id="fbSend">Send</button><button class="fbx" id="fbCancel">X</button></div>
+      <div class="fbstatus" id="fbStatus"></div>
+    </div>
+    <button class="fbbtn" id="fbBtn" title="Send feedback to Snad Industries">// Feedback</button>
   </div>
 
   <input type="file" id="file" accept="audio/*">
@@ -612,7 +635,7 @@ function redo(){if(!redoStack.length)return;undoStack.push(snapshot());applySnap
 const fileIn=$('file'),midiIn=$('midifile');
 $('load').onclick=()=>$('srcmodal').classList.add('show');
 fileIn.onchange=async e=>{const f=e.target.files[0];if(!f)return;$('st-name').textContent='DECODING...';
-  try{const buf=await ac().decodeAudioData(await f.arrayBuffer());installBuffer(buf,f.name.replace(/\.[^.]+$/,''));}catch(err){$('st-name').textContent='DECODE FAILED';}};
+  try{const buf=await ac().decodeAudioData(await f.arrayBuffer());installBuffer(buf,f.name.replace(/\.[^.]+$/,''),'disk');}catch(err){$('st-name').textContent='DECODE FAILED';}};
 $('import').onclick=()=>$('midimodal').classList.add('show');
 midiIn.onchange=async e=>{const f=e.target.files[0];if(!f)return;try{importMidi(await f.arrayBuffer());}catch(err){alert('MIDI parse failed: '+err);}};
 
@@ -707,12 +730,12 @@ async function renderLoopWav(){const sr=44100,ls=loopSec(),loopFrames=Math.round
   const ob=new OfflineAudioContext(2,loopFrames,sr),out=ob.createBuffer(2,loopFrames,sr),start=pre*loopFrames;
   for(let ch=0;ch<2;ch++){const sd=rendered.getChannelData(Math.min(ch,rendered.numberOfChannels-1)),dd=out.getChannelData(ch);for(let i=0;i<loopFrames;i++)dd[i]=sd[start+i]||0;}
   return encodeWav(out);}
-async function exportToDisk(){if(!state.buffer)return;$('st-state').textContent='RENDERING';
+async function exportToDisk(){if(!state.buffer)return;if(state.fromAT){$('st-state').textContent='EXPORT DENIED \u2014 AUDIOTOOL ASSET \u00b7 USE TRANSMIT';return;}$('st-state').textContent='RENDERING';
   try{const blob=await renderLoopWav();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(state.sampleName||'snampler')+'.wav';a.click();URL.revokeObjectURL(url);$('st-state').textContent=state.playing?'PLAYING':'READY';}
   catch(e){$('st-state').textContent='EXPORT FAILED';}}
-$('export').onclick=()=>{if(!state.buffer)return;$('expname').value='';$('expname').placeholder=atDefaultLoopName();$('expmodal').classList.add('show');};
+$('export').onclick=()=>{if(!state.buffer)return;$('expname').value='';$('expname').placeholder=atDefaultLoopName();var dd=$('expDisk');if(dd){dd.disabled=!!state.fromAT;dd.title=state.fromAT?'Disabled: this sample came from Audiotool \u2014 keep it on-platform via To Audiotool':'';}$('expmodal').classList.add('show');};
 
-function installBuffer(buf,name){state.buffer=buf;state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;updateSmpCap();drawMain();updateMainInfo();}
+function installBuffer(buf,name,origin){state.buffer=buf;state.fromAT=(origin==='at');state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;updateSmpCap();drawMain();updateMainInfo();}
 
 // ---------- Audiotool (Nexus SDK) ----------
 const AT_CLIENT_ID='6ca4ce9a-461d-44a3-ac32-145930ab799a';
@@ -756,7 +779,7 @@ async function atOpenProject(url){if(!atSession){await atConnect(true);if(!atSes
   finally{try{if(nexus&&nexus.stop)nexus.stop();}catch(e){}}}
 async function atDownload(c,sample,projBpm){try{$('atmsg').textContent='DOWNLOADING\u2026';
     const blob=await c.samples.download(sample.name||sample,{format:'wav'});if(blob instanceof Error)throw blob;
-    const buf=await ac().decodeAudioData(await blob.arrayBuffer());installBuffer(buf,String(sample.displayName||sample.name||'AT SAMPLE'));
+    const buf=await ac().decodeAudioData(await blob.arrayBuffer());installBuffer(buf,String(sample.displayName||sample.name||'AT SAMPLE'),'at');
     if(projBpm>=30&&projBpm<=300)setBpm(Math.round(projBpm));$('atmodal').classList.remove('show');}
   catch(e){$('atmsg').textContent='DOWNLOAD FAILED \u2014 SEE CONSOLE';console.error('[AT]',e);}}
 function atSampleBase(){return (state.sampleName||'sample').toString().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'sample';}
@@ -988,5 +1011,18 @@ applyTheme();
       cur=el;box.textContent=el.dataset.tip;box.classList.add('show');pos(e.clientX,e.clientY);});
     document.addEventListener('mousemove',e=>{if(cur)pos(e.clientX,e.clientY);});
     document.addEventListener('mouseout',e=>{const el=(e.target&&e.target.closest)?e.target.closest('[data-tip]'):null;if(el&&el===cur){box.classList.remove('show');cur=null;}});})();
+})();
+(function(){const $=id=>document.getElementById(id);const panel=$('fbpanel'),st=$('fbStatus');
+  if(!panel||!$('fbBtn'))return;
+  const close=()=>{panel.classList.remove('open');};
+  $('fbBtn').onclick=()=>{panel.classList.toggle('open');st.textContent='';if(panel.classList.contains('open'))setTimeout(()=>$('fbMsg').focus(),0);};
+  $('fbCancel').onclick=close;
+  $('fbSend').onclick=async()=>{const msg=$('fbMsg').value.trim();if(!msg){st.textContent='// MESSAGE REQUIRED';return;}
+    st.textContent='// TRANSMITTING\u2026';
+    const rev=((document.querySelector('.foot span')||{}).textContent||'').trim();
+    try{const res=await fetch('https://formspree.io/f/mkoaqeez',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({app:'SNAMPLER',rev:rev,name:$('fbName').value.trim()||'ANONYMOUS',email:$('fbEmail').value.trim()||'',message:msg})});
+      if(res.ok){st.textContent='// SIGNAL RECEIVED';$('fbMsg').value='';$('fbName').value='';$('fbEmail').value='';setTimeout(()=>{close();st.textContent='';},1800);}
+      else st.textContent='// TRANSMISSION FAILED';}
+    catch(e){st.textContent='// CONNECTION ERROR';}};
 })();
 </script>
