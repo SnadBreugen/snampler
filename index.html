@@ -295,7 +295,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.6.2</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 1.6.3</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -585,7 +585,7 @@ function importMidi(buf){const m=parseMidi(buf);pushUndo();let maxStep=0;
     maxStep=Math.max(maxStep,start+len);return {id:uid(),pitch:clamp(Math.round(n.pitch),LO,HI),start,len,vel:clamp(n.vel,1,127)};});
   state.lengthBars=clamp(Math.ceil(maxStep/BARSTEPS),1,256);$('len').value=state.lengthBars;
   state.loopStart=0;state.loopEnd=state.lengthBars*BARSTEPS;if(m.bpm)setBpm(m.bpm);buildRoll();}
-function importAtNotes(notes){pushUndo();let maxStep=0;const TPS=3840/BARSTEPS; // 3840 AT ticks per bar / 192 steps = 20 ticks per step
+function importAtNotes(notes){pushUndo();let maxStep=0;const TPS=3840/SPB; // 3840 AT ticks per beat / 48 steps per beat = 80 ticks per step
   state.notes=notes.map(n=>{const start=Math.max(0,Math.round((n.positionTicks||0)/TPS));const len=Math.max(1,Math.round((n.durationTicks||240)/TPS));
     maxStep=Math.max(maxStep,start+len);return {id:uid(),pitch:clamp(Math.round(n.pitch||60),LO,HI),start,len,vel:clamp(Math.round(n.velocity||100),1,127)};});
   state.lengthBars=clamp(Math.ceil(maxStep/BARSTEPS),1,256);$('len').value=state.lengthBars;
@@ -791,9 +791,13 @@ async function atOpenMidi(url){if(!atSession){await atConnect(true);if(!atSessio
         c:Number((f.positionTicks&&f.positionTicks.value)!=null?f.positionTicks.value:0),
         durTicks:Number((f.durationTicks&&f.durationTicks.value)!=null?f.durationTicks.value:960)};
       if(!byColl.has(cLoc))byColl.set(cLoc,[]);byColl.get(cLoc).push(note);}
-    const gv=(o,k,d)=>{try{if(!o)return d;const f=o[k];if(f==null)return d;return (f.value!=null)?f.value:(typeof f.get==='function'?f.get():(typeof f==='number'?f:d));}catch(e){return d;}};
-    function regGeo(nr){let R=nr.fields&&nr.fields.region;let r=R;try{if(R&&typeof R.get==='function')r=R.get();}catch(e){}if(R&&R.value!=null&&typeof R.value==='object')r=R.value;
-      return {pos:Number(gv(r,'positionTicks',0)),dur:Number(gv(r,'durationTicks',15360)),loopOff:Number(gv(r,'loopOffsetTicks',0)),collOff:Number(gv(r,'collectionOffsetTicks',0))};}
+    const rfield=(r,k)=>{if(!r)return undefined;let f=r[k];if(f&&f.value!=null)return f.value;if(typeof f==='number')return f;if(f&&typeof f.get==='function'){try{const v=f.get();if(v!=null)return v;}catch(e){}}return undefined;};
+    function regGeo(nr){let R=nr.fields&&nr.fields.region,cands=[];
+      if(R){cands.push(R);if(R.value!=null)cands.push(R.value);if(typeof R.get==='function'){try{cands.push(R.get());}catch(e){}}}
+      let r=null;for(const c of cands){if(rfield(c,'positionTicks')!=null||rfield(c,'durationTicks')!=null){r=c;break;}}
+      if(!r&&R){console.warn('[AT] region geometry unreadable; raw region:',R,'keys:',(typeof R==='object')?Object.keys(R):typeof R);}
+      const dur=rfield(r,'durationTicks');
+      return {pos:Number(rfield(r,'positionTicks')||0),dur:(dur!=null?Number(dur):Infinity),loopOff:Number(rfield(r,'loopOffsetTicks')||0),collOff:Number(rfield(r,'collectionOffsetTicks')||0)};}
     const items=[];let idx=0;
     for(const reg of regions){idx++;const rf=reg.fields||{};const cLoc=(rf.collection&&rf.collection.value!=null)?rf.collection.value.toString():'';const tLoc=(rf.track&&rf.track.value!=null)?rf.track.value.toString():'';
       const nt=tracks.find(t=>t.location&&t.location.toString()===tLoc);const tname=String((nt&&nt.fields&&nt.fields.displayName&&nt.fields.displayName.value)||('Track '+idx));
