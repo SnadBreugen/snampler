@@ -295,7 +295,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.6.3</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 1.6.4</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -791,13 +791,10 @@ async function atOpenMidi(url){if(!atSession){await atConnect(true);if(!atSessio
         c:Number((f.positionTicks&&f.positionTicks.value)!=null?f.positionTicks.value:0),
         durTicks:Number((f.durationTicks&&f.durationTicks.value)!=null?f.durationTicks.value:960)};
       if(!byColl.has(cLoc))byColl.set(cLoc,[]);byColl.get(cLoc).push(note);}
-    const rfield=(r,k)=>{if(!r)return undefined;let f=r[k];if(f&&f.value!=null)return f.value;if(typeof f==='number')return f;if(f&&typeof f.get==='function'){try{const v=f.get();if(v!=null)return v;}catch(e){}}return undefined;};
-    function regGeo(nr){let R=nr.fields&&nr.fields.region,cands=[];
-      if(R){cands.push(R);if(R.value!=null)cands.push(R.value);if(typeof R.get==='function'){try{cands.push(R.get());}catch(e){}}}
-      let r=null;for(const c of cands){if(rfield(c,'positionTicks')!=null||rfield(c,'durationTicks')!=null){r=c;break;}}
-      if(!r&&R){console.warn('[AT] region geometry unreadable; raw region:',R,'keys:',(typeof R==='object')?Object.keys(R):typeof R);}
-      const dur=rfield(r,'durationTicks');
-      return {pos:Number(rfield(r,'positionTicks')||0),dur:(dur!=null?Number(dur):Infinity),loopOff:Number(rfield(r,'loopOffsetTicks')||0),collOff:Number(rfield(r,'collectionOffsetTicks')||0)};}
+    function regGeo(nr){const ro=nr.fields&&nr.fields.region;const rf=(ro&&ro.fields)?ro.fields:null;
+      if(!rf){console.warn('[AT] region.fields missing; raw region object:',ro);return {pos:0,dur:Infinity,loopOff:0,collOff:0};}
+      const gv=(k,d)=>{const f=rf[k];return (f&&f.value!=null)?Number(f.value):d;};
+      return {pos:gv('positionTicks',0),dur:gv('durationTicks',Infinity),loopOff:gv('loopOffsetTicks',0),collOff:gv('collectionOffsetTicks',0)};}
     const items=[];let idx=0;
     for(const reg of regions){idx++;const rf=reg.fields||{};const cLoc=(rf.collection&&rf.collection.value!=null)?rf.collection.value.toString():'';const tLoc=(rf.track&&rf.track.value!=null)?rf.track.value.toString():'';
       const nt=tracks.find(t=>t.location&&t.location.toString()===tLoc);const tname=String((nt&&nt.fields&&nt.fields.displayName&&nt.fields.displayName.value)||('Track '+idx));
