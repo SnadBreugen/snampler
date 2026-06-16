@@ -229,7 +229,7 @@
     <div>
       <div class="corp"><span class="eqglyph"><i></i><i></i><i></i><i></i><i></i></span>SNAD INDUSTRIES</div>
       <div class="title">SNAMPLER</div>
-      <div class="sub">Sample Sequencer</div>
+      <div class="sub">Sample Rig</div>
     </div>
     <div class="statusscr">
       <span class="sdot"></span>
@@ -295,7 +295,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.5.0</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 1.6.0</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -343,6 +343,7 @@
     <div class="modal-card" style="max-width:440px">
       <h4>Export // Destination<span class="seg" style="margin-left:auto"><button class="btn sm" id="expclose">Close &#10005;</button></span></h4>
       <div class="dimcap" style="margin-bottom:11px">Where does the loop go? The effect tail is rendered settled from the start either way.</div>
+      <div style="margin-bottom:12px"><div class="dimcap" style="margin-bottom:6px">Name for the Audiotool upload &middot; blank = auto</div><input type="text" id="expname" class="aturl" spellcheck="false" placeholder="vocalchop_loop_snample"></div>
       <div class="choorow"><button class="btn choo" id="expDisk">To Disk (WAV)</button><button class="btn choo" id="expAt">To Audiotool</button></div>
     </div>
   </div>
@@ -709,7 +710,7 @@ async function renderLoopWav(){const sr=44100,ls=loopSec(),loopFrames=Math.round
 async function exportToDisk(){if(!state.buffer)return;$('st-state').textContent='RENDERING';
   try{const blob=await renderLoopWav();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(state.sampleName||'snampler')+'.wav';a.click();URL.revokeObjectURL(url);$('st-state').textContent=state.playing?'PLAYING':'READY';}
   catch(e){$('st-state').textContent='EXPORT FAILED';}}
-$('export').onclick=()=>{if(!state.buffer)return;$('expmodal').classList.add('show');};
+$('export').onclick=()=>{if(!state.buffer)return;$('expname').value='';$('expname').placeholder=atDefaultLoopName();$('expmodal').classList.add('show');};
 
 function installBuffer(buf,name){state.buffer=buf;state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;updateSmpCap();drawMain();updateMainInfo();}
 
@@ -758,12 +759,15 @@ async function atDownload(c,sample,projBpm){try{$('atmsg').textContent='DOWNLOAD
     const buf=await ac().decodeAudioData(await blob.arrayBuffer());installBuffer(buf,String(sample.displayName||sample.name||'AT SAMPLE'));
     if(projBpm>=30&&projBpm<=300)setBpm(Math.round(projBpm));$('atmodal').classList.remove('show');}
   catch(e){$('atmsg').textContent='DOWNLOAD FAILED \u2014 SEE CONSOLE';console.error('[AT]',e);}}
-async function atTransmit(){if(!state.buffer)return;if(!atSession){await atConnect(true);if(!atSession)return;}
-  try{$('st-state').textContent='TRANSMIT \u2026';const blob=await renderLoopWav();const name=(state.sampleName||'SNAMPLER');
+function atSampleBase(){return (state.sampleName||'sample').toString().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'sample';}
+function atDefaultLoopName(){return atSampleBase()+'_loop_snample';}
+function atLoopName(n){n=(n||'').toString().trim();return n?n.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''):atDefaultLoopName();}
+async function atTransmit(nameArg){if(!state.buffer)return;if(!atSession){await atConnect(true);if(!atSession)return;}
+  try{$('st-state').textContent='TRANSMIT \u2026';const blob=await renderLoopWav();const name=atLoopName(nameArg);
     const file=new File([blob],name+'.wav',{type:'audio/wav'});const c=atSession.client||atSession;
     if(!(c.samples&&c.samples.upload)){$('st-state').textContent='TRANSMIT FAILED';return;}
     const up=await c.samples.upload({file,displayName:name,kind:'loop',bpm:state.bpm,tags:['snampler'],visibility:'private',preventTabClose:true});
-    if(up instanceof Error)throw up;await up.uploaded;await up.ready;$('st-state').textContent='TRANSMIT DONE \u2014 '+name.toUpperCase();}
+    if(up instanceof Error)throw up;await up.uploaded;await up.ready;$('st-state').textContent='TRANSMIT DONE \u2014 '+name;}
   catch(e){$('st-state').textContent='TRANSMIT FAILED';console.error('[AT]',e);}}
 let atMode='sample';
 async function openAtTimeline(mode){atMode=mode||'sample';if(!atSession){await atConnect(true);if(!atSession)return;}
@@ -773,16 +777,21 @@ async function openAtTimeline(mode){atMode=mode||'sample';if(!atSession){await a
 async function atOpenMidi(url){if(!atSession){await atConnect(true);if(!atSession)return;}const at=atSession;let nexus=null;
   $('atmsg').textContent='OPENING PROJECT\u2026';
   try{nexus=await at.open(url);if(nexus&&nexus.start)await nexus.start();
-    const collections=nexus.queryEntities.ofTypes('noteCollection').get()||[];
+    let collections=nexus.queryEntities.ofTypes('noteCollection').get()||[];
+    for(let i=0;i<10&&!collections.length;i++){await new Promise(r=>setTimeout(r,250));collections=nexus.queryEntities.ofTypes('noteCollection').get()||[];}
     const regions=nexus.queryEntities.ofTypes('noteRegion').get()||[];
     const tracks=nexus.queryEntities.ofTypes('noteTrack').get()||[];
+    const machines=nexus.queryEntities.ofTypes('machiniste').get()||[];
+    console.log('[AT] midi counts | noteCollection:',collections.length,'noteRegion:',regions.length,'noteTrack:',tracks.length,'machiniste:',machines.length);
     const nameByColl=new Map();
     for(const r of regions){const cLoc=r.fields&&r.fields.collection&&r.fields.collection.value!=null?r.fields.collection.value.toString():'';const tLoc=r.fields&&r.fields.track&&r.fields.track.value!=null?r.fields.track.value.toString():'';const nt=tracks.find(t=>t.location&&t.location.toString()===tLoc);if(cLoc&&!nameByColl.has(cLoc))nameByColl.set(cLoc,String((nt&&nt.fields&&nt.fields.displayName&&nt.fields.displayName.value)||('Track '+(nameByColl.size+1))));}
     const items=[];let idx=0;
-    for(const coll of collections){idx++;const raw=(coll.fields&&coll.fields.notes&&coll.fields.notes.get&&coll.fields.notes.get())||[];if(!raw.length)continue;
+    for(const coll of collections){idx++;let raw=[];try{raw=(coll.fields&&coll.fields.notes&&coll.fields.notes.get&&coll.fields.notes.get())||[];}catch(err){console.warn('[AT] notes.get failed',err);}
+      console.log('[AT] collection',idx,'fieldKeys:',coll.fields?Object.keys(coll.fields):null,'noteCount:',raw.length);
+      if(!raw.length)continue;
       const notes=raw.map(n=>{const f=n.fields||{};return {pitch:Number((f.pitch&&f.pitch.value)!=null?f.pitch.value:(n.pitch!=null?n.pitch:60)),velocity:Number((f.velocity&&f.velocity.value)!=null?f.velocity.value:(n.velocity!=null?n.velocity:100)),positionTicks:Number((f.positionTicks&&f.positionTicks.value)!=null?f.positionTicks.value:(n.positionTicks!=null?n.positionTicks:0)),durationTicks:Number((f.durationTicks&&f.durationTicks.value)!=null?f.durationTicks.value:(n.durationTicks!=null?n.durationTicks:240))};});
       const nm=nameByColl.get(coll.location.toString())||('Track '+idx);items.push({name:nm,notes});}
-    if(!items.length){$('atmsg').textContent='NO MIDI NOTES IN THIS PROJECT';return;}
+    if(!items.length){$('atmsg').textContent='NO MELODIC NOTES FOUND \u2014 SEE CONSOLE (F12)';console.warn('[AT] No noteCollection notes extracted. If machiniste count above is >0, the notes live on a Machiniste (drum device), which this importer does not read yet.');return;}
     $('atmsg').textContent='';const list=$('atlist');list.innerHTML='';list.style.display='block';$('atstep1').style.display='none';
     for(const it of items){const b=document.createElement('div');b.className='atitem';b.textContent=(it.name+' \u00b7 '+it.notes.length+' notes').toUpperCase().slice(0,46);b.onclick=()=>{importAtNotes(it.notes);$('atmodal').classList.remove('show');$('st-state').textContent='MIDI IMPORTED \u2014 '+it.notes.length+' NOTES';};list.append(b);}}
   catch(e){$('atmsg').textContent='IMPORT FAILED \u2014 SEE CONSOLE (F12)';console.error('[AT]',e);}
@@ -800,7 +809,7 @@ $('midimodal').onpointerdown=e=>{if(e.target.id==='midimodal')$('midimodal').cla
 $('srcclose').onclick=()=>$('srcmodal').classList.remove('show');
 $('srcmodal').onpointerdown=e=>{if(e.target.id==='srcmodal')$('srcmodal').classList.remove('show');};
 $('expDisk').onclick=()=>{$('expmodal').classList.remove('show');exportToDisk();};
-$('expAt').onclick=()=>{$('expmodal').classList.remove('show');atTransmit();};
+$('expAt').onclick=()=>{const v=$('expname').value;$('expmodal').classList.remove('show');atTransmit(v);};
 $('expclose').onclick=()=>$('expmodal').classList.remove('show');
 $('expmodal').onpointerdown=e=>{if(e.target.id==='expmodal')$('expmodal').classList.remove('show');};
 $('atUplink').onclick=atUplinkClick;atInit();
@@ -897,7 +906,7 @@ let dark=true;function applyTheme(){document.body.classList.toggle('dark',dark);
 const _tb=document.getElementById('theme');if(_tb)_tb.onclick=()=>{dark=!dark;applyTheme();};
 applyTheme();
 (function(){const featLines=document.getElementById('featLines'),featHover=document.getElementById('featHover');if(!featLines)return;
-  const CODE=['<span class="p-g">&gt;</span> <span class="kw">SNAMPLER</span> <span class="sl">// sample sequencer</span>','<span class="p-d">$</span> load: <span class="kw">IMPORT WAV</span> &middot; the sound becomes the voice','<span class="p-d">$</span> draw the line across the roll = <span class="kw">pitches</span>','<span class="p-d">$</span> grid: snap <span class="kw">1/4 &rarr; 1/64</span> + triplets','<span class="p-c">#</span> <span class="cm">dbl-click = add / delete &middot; drag = move</span>','<span class="p-c">#</span> <span class="cm">ctrl+drag = copy &middot; drag empty = select</span>','<span class="p-d">$</span> edit: trim &middot; reverse &middot; <span class="kw">granular</span> freeze/scan/stretch','<span class="p-d">$</span> loop: mark a range &middot; render <span class="kw">EXPORT // WAV</span>','<span class="sl">// straight back into audiotool</span>','<span class="p-c">#</span> <span class="cm">the export sounds exactly like this</span>'];
+  const CODE=['<span class="p-g">&gt;</span> <span class="kw">SNAMPLER</span> <span class="sl">// sample rig</span>','<span class="p-d">$</span> load: <span class="kw">IMPORT WAV</span> &middot; the sound becomes the voice','<span class="p-d">$</span> draw the line across the roll = <span class="kw">pitches</span>','<span class="p-d">$</span> grid: snap <span class="kw">1/4 &rarr; 1/64</span> + triplets','<span class="p-c">#</span> <span class="cm">dbl-click = add / delete &middot; drag = move</span>','<span class="p-c">#</span> <span class="cm">ctrl+drag = copy &middot; drag empty = select</span>','<span class="p-d">$</span> edit: trim &middot; reverse &middot; <span class="kw">granular</span> freeze/scan/stretch','<span class="p-d">$</span> loop: mark a range &middot; render <span class="kw">EXPORT // WAV</span>','<span class="sl">// straight back into audiotool</span>','<span class="p-c">#</span> <span class="cm">the export sounds exactly like this</span>'];
   (function(){featLines.innerHTML='';const cur=document.createElement('span');cur.className='feat-cursor';let k=0;
     const rev=()=>{if(k>=CODE.length)return;const d=document.createElement('div');d.className='fc-line';d.innerHTML=CODE[k];featLines.appendChild(d);featLines.appendChild(cur);k++;setTimeout(rev,110);};rev();})();
   const MAN={
