@@ -295,7 +295,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.6.0</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 1.6.1</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -785,13 +785,22 @@ async function atOpenMidi(url){if(!atSession){await atConnect(true);if(!atSessio
     console.log('[AT] midi counts | noteCollection:',collections.length,'noteRegion:',regions.length,'noteTrack:',tracks.length,'machiniste:',machines.length);
     const nameByColl=new Map();
     for(const r of regions){const cLoc=r.fields&&r.fields.collection&&r.fields.collection.value!=null?r.fields.collection.value.toString():'';const tLoc=r.fields&&r.fields.track&&r.fields.track.value!=null?r.fields.track.value.toString():'';const nt=tracks.find(t=>t.location&&t.location.toString()===tLoc);if(cLoc&&!nameByColl.has(cLoc))nameByColl.set(cLoc,String((nt&&nt.fields&&nt.fields.displayName&&nt.fields.displayName.value)||('Track '+(nameByColl.size+1))));}
+    let allNotes=nexus.queryEntities.ofTypes('note').get()||[];
+    for(let i=0;i<10&&!allNotes.length;i++){await new Promise(r=>setTimeout(r,250));allNotes=nexus.queryEntities.ofTypes('note').get()||[];}
+    console.log('[AT] note entities:',allNotes.length);
+    const byColl=new Map();
+    for(const n of allNotes){const f=n.fields||{};
+      const cLoc=(f.collection&&f.collection.value!=null)?f.collection.value.toString():'';
+      const vraw=Number((f.velocity&&f.velocity.value)!=null?f.velocity.value:0.7);
+      const note={pitch:Number((f.pitch&&f.pitch.value)!=null?f.pitch.value:60),
+        velocity:Math.max(1,Math.round((vraw<=1?vraw:vraw/127)*127)),
+        positionTicks:Number((f.positionTicks&&f.positionTicks.value)!=null?f.positionTicks.value:0),
+        durationTicks:Number((f.durationTicks&&f.durationTicks.value)!=null?f.durationTicks.value:960)};
+      if(!byColl.has(cLoc))byColl.set(cLoc,[]);byColl.get(cLoc).push(note);}
     const items=[];let idx=0;
-    for(const coll of collections){idx++;let raw=[];try{raw=(coll.fields&&coll.fields.notes&&coll.fields.notes.get&&coll.fields.notes.get())||[];}catch(err){console.warn('[AT] notes.get failed',err);}
-      console.log('[AT] collection',idx,'fieldKeys:',coll.fields?Object.keys(coll.fields):null,'noteCount:',raw.length);
-      if(!raw.length)continue;
-      const notes=raw.map(n=>{const f=n.fields||{};return {pitch:Number((f.pitch&&f.pitch.value)!=null?f.pitch.value:(n.pitch!=null?n.pitch:60)),velocity:Number((f.velocity&&f.velocity.value)!=null?f.velocity.value:(n.velocity!=null?n.velocity:100)),positionTicks:Number((f.positionTicks&&f.positionTicks.value)!=null?f.positionTicks.value:(n.positionTicks!=null?n.positionTicks:0)),durationTicks:Number((f.durationTicks&&f.durationTicks.value)!=null?f.durationTicks.value:(n.durationTicks!=null?n.durationTicks:240))};});
-      const nm=nameByColl.get(coll.location.toString())||('Track '+idx);items.push({name:nm,notes});}
-    if(!items.length){$('atmsg').textContent='NO MELODIC NOTES FOUND \u2014 SEE CONSOLE (F12)';console.warn('[AT] No noteCollection notes extracted. If machiniste count above is >0, the notes live on a Machiniste (drum device), which this importer does not read yet.');return;}
+    for(const [cLoc,notes] of byColl){if(!notes.length)continue;idx++;
+      const nm=nameByColl.get(cLoc)||('Track '+idx);items.push({name:nm,notes});}
+    if(!items.length){$('atmsg').textContent='NO MELODIC NOTES FOUND \u2014 SEE CONSOLE (F12)';console.warn('[AT] No note entities found for any collection. If machiniste count above is >0, those notes live on a Machiniste (drum device) and are read differently.');return;}
     $('atmsg').textContent='';const list=$('atlist');list.innerHTML='';list.style.display='block';$('atstep1').style.display='none';
     for(const it of items){const b=document.createElement('div');b.className='atitem';b.textContent=(it.name+' \u00b7 '+it.notes.length+' notes').toUpperCase().slice(0,46);b.onclick=()=>{importAtNotes(it.notes);$('atmodal').classList.remove('show');$('st-state').textContent='MIDI IMPORTED \u2014 '+it.notes.length+' NOTES';};list.append(b);}}
   catch(e){$('atmsg').textContent='IMPORT FAILED \u2014 SEE CONSOLE (F12)';console.error('[AT]',e);}
