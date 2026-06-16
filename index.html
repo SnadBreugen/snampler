@@ -257,7 +257,7 @@
     <button class="ibtn" id="loop" title="Loop: repeat the marker range while listening. Off = play through once">&#10227;</button>
     <div class="vdiv"></div>
     <button class="btn" id="editbtn" disabled title="Open the sample editor: trim the slice, reverse it, or switch to granular"><span class="eqglyph"><i></i><i></i><i></i></span>Edit Sample</button>
-    <div class="clearwrap"><button class="btn" id="clear" title="Clear every note from the region: start the line from scratch">Clear</button><span class="sub2">Region</span></div>
+    <div class="clearwrap"><button class="btn" id="clear" title="Clear every note from the region: start the line from scratch">Clear</button></div>
   </div>
 
   <div class="screen">
@@ -289,12 +289,13 @@
   </div>
 
   <div class="output">
+    <button class="btn" id="atUplink" title="Connect your Audiotool account. Opens the Audiotool login in this tab; after you come back you are linked. Needed before importing from a timeline or transmitting.">Uplink</button>
     <button class="btn" id="export" title="Export the marker range: choose disk (WAV) or straight to Audiotool">Export / WAV</button>
     <div class="meter" id="outmeter" title="Output level: live while playing"><i id="meterfill"></i></div>
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.4.2</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 1.5.0</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -716,13 +717,29 @@ function installBuffer(buf,name){state.buffer=buf;state.sampleName=(name||'SAMPL
 const AT_CLIENT_ID='6ca4ce9a-461d-44a3-ac32-145930ab799a';
 const AT_REDIRECT='https://snadbreugen.github.io/snampler/'; // must match the redirect URI registered on developer.audiotool.com, exactly
 const AT_SCOPE='sample:read sample:write project:read project:write';
-let atSession=null,atSdkPromise=null;
+let atSession=null,atAuth=null,atSdkPromise=null,atInitDone=false;
 async function loadAtSdk(){if(!atSdkPromise)atSdkPromise=import('./nexus.bundle.js');const m=await atSdkPromise;return m.default||m;}
-async function atConnect(interactive){if(location.protocol==='file:'){$('st-state').textContent='UPLINK NEEDS LIVE URL';return null;}
-  try{const sdk=await loadAtSdk();const at=await sdk.audiotool({clientId:AT_CLIENT_ID,redirectUrl:AT_REDIRECT,scope:AT_SCOPE});
-    if(at.status==='unauthenticated'){if(interactive){$('st-state').textContent='UPLINK \u2026';at.login();}return null;}
-    atSession=at;var u=$('atUplink');if(u){u.textContent='Uplink \u2713';u.classList.add('on');}$('st-state').textContent='UPLINK OK';return at;}
-  catch(e){$('st-state').textContent='UPLINK FAILED';console.error('[AT]',e);return null;}}
+function atStatus(t){var s=$('st-state');if(s)s.textContent=t;}
+function atSetConnected(on){var u=$('atUplink');if(u){u.classList.toggle('on',on);u.textContent=on?'Uplink \u2713':'Uplink';}}
+async function atInit(){if(atInitDone)return;atInitDone=true;
+  if(location.protocol==='file:'){console.warn('[AT] needs a live https origin, not file://');return;}
+  try{console.log('[AT] loading sdk \u2026');const sdk=await loadAtSdk();
+    console.log('[AT] sdk ready, creating client \u2026');
+    atAuth=await sdk.audiotool({clientId:AT_CLIENT_ID,redirectUrl:AT_REDIRECT,scope:AT_SCOPE});
+    console.log('[AT] auth status =',atAuth&&atAuth.status);
+    if(atAuth&&atAuth.status!=='unauthenticated'){atSession=atAuth;atSetConnected(true);atStatus('UPLINK OK');}
+  }catch(e){console.error('[AT] init failed',e);atStatus('UPLINK FAILED \u2014 SEE CONSOLE');}}
+function atUplinkClick(){
+  if(location.protocol==='file:'){atStatus('UPLINK NEEDS THE LIVE URL');return;}
+  if(atSession){atStatus('UPLINK OK \u2014 ALREADY CONNECTED');return;}
+  if(!atAuth){atStatus('UPLINK \u2026 STILL CONNECTING, CLICK AGAIN');atInit();return;}
+  if(atAuth.status==='unauthenticated'){console.log('[AT] login() \u2014 redirecting');atStatus('UPLINK \u2026 REDIRECTING TO AUDIOTOOL');try{atAuth.login();}catch(e){console.error('[AT] login failed',e);atStatus('UPLINK FAILED \u2014 SEE CONSOLE');}return;}
+  atSession=atAuth;atSetConnected(true);atStatus('UPLINK OK');}
+async function atConnect(interactive){if(atSession)return atSession;
+  if(!atAuth)await atInit();
+  if(atSession)return atSession;
+  if(interactive)atStatus('PRESS UPLINK FIRST TO LOG IN');
+  return null;}
 async function atOpenProject(url){if(!atSession){await atConnect(true);if(!atSession)return;}const at=atSession,c=at.client||at;let nexus=null;
   $('atmsg').textContent='OPENING PROJECT\u2026';
   try{nexus=await at.open(url);if(nexus&&nexus.start)await nexus.start();
@@ -786,7 +803,7 @@ $('expDisk').onclick=()=>{$('expmodal').classList.remove('show');exportToDisk();
 $('expAt').onclick=()=>{$('expmodal').classList.remove('show');atTransmit();};
 $('expclose').onclick=()=>$('expmodal').classList.remove('show');
 $('expmodal').onpointerdown=e=>{if(e.target.id==='expmodal')$('expmodal').classList.remove('show');};
-if(/[?&#](code|state)=/.test(location.search+location.hash))atConnect(false);
+$('atUplink').onclick=atUplinkClick;atInit();
 
 window.addEventListener('resize',()=>{buildOverview();renderMarkers();setupWave();drawWave();syncVPort();drawMain();});
 function buildReversed(){const b=state.buffer;const rb=ctx.createBuffer(b.numberOfChannels,b.length,b.sampleRate);
