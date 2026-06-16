@@ -315,6 +315,13 @@
     </div>
   </div>
 
+  <div class="modal" id="midimodal">
+    <div class="modal-card" style="max-width:440px">
+      <h4>Import MIDI // Source<span class="seg" style="margin-left:auto"><button class="btn sm" id="midiclose">Close &#10005;</button></span></h4>
+      <div class="dimcap" style="margin-bottom:11px">Where do the notes come from?</div>
+      <div class="choorow"><button class="btn choo" id="midiDisk">From Disk</button><button class="btn choo" id="midiAt">Audiotool Project</button></div>
+    </div>
+  </div>
   <div class="modal" id="srcmodal">
     <div class="modal-card" style="max-width:440px">
       <h4>Import WAV // Source<span class="seg" style="margin-left:auto"><button class="btn sm" id="srcclose">Close &#10005;</button></span></h4>
@@ -331,11 +338,11 @@
   </div>
   <div class="modal" id="atmodal">
     <div class="modal-card" style="max-width:520px">
-      <h4>Audiotool // Timeline
+      <h4><span id="atmodaltitle">Audiotool // Timeline</span>
         <span class="seg" style="margin-left:auto"><button class="btn sm" id="atclose">Close &#10005;</button></span>
       </h4>
       <div id="atstep1">
-        <div class="dimcap" style="margin-bottom:8px">Paste a project link from audiotool.com &middot; its timeline samples get listed</div>
+        <div class="dimcap" id="atstep1cap" style="margin-bottom:8px">Paste a project link from audiotool.com &middot; its timeline samples get listed</div>
         <div style="display:flex;gap:8px"><input type="text" id="aturl" class="aturl" spellcheck="false" placeholder="https://www.audiotool.com/studio?project=..."><button class="btn" id="atopen">Open</button></div>
       </div>
       <div id="atlist" style="display:none"></div>
@@ -567,6 +574,11 @@ function importMidi(buf){const m=parseMidi(buf);pushUndo();let maxStep=0;
     maxStep=Math.max(maxStep,start+len);return {id:uid(),pitch:clamp(Math.round(n.pitch),LO,HI),start,len,vel:clamp(n.vel,1,127)};});
   state.lengthBars=clamp(Math.ceil(maxStep/BARSTEPS),1,256);$('len').value=state.lengthBars;
   state.loopStart=0;state.loopEnd=state.lengthBars*BARSTEPS;if(m.bpm)setBpm(m.bpm);buildRoll();}
+function importAtNotes(notes){pushUndo();let maxStep=0;const TPS=3840/BARSTEPS; // 3840 AT ticks per bar / 192 steps = 20 ticks per step
+  state.notes=notes.map(n=>{const start=Math.max(0,Math.round((n.positionTicks||0)/TPS));const len=Math.max(1,Math.round((n.durationTicks||240)/TPS));
+    maxStep=Math.max(maxStep,start+len);return {id:uid(),pitch:clamp(Math.round(n.pitch||60),LO,HI),start,len,vel:clamp(Math.round(n.velocity||100),1,127)};});
+  state.lengthBars=clamp(Math.ceil(maxStep/BARSTEPS),1,256);$('len').value=state.lengthBars;
+  state.loopStart=0;state.loopEnd=state.lengthBars*BARSTEPS;buildRoll();}
 
 // ---------- controls ----------
 const knob=$('knob'),kind=knob.querySelector('.ind'),bpmread=$('bpmread');
@@ -590,7 +602,7 @@ const fileIn=$('file'),midiIn=$('midifile');
 $('load').onclick=()=>$('srcmodal').classList.add('show');
 fileIn.onchange=async e=>{const f=e.target.files[0];if(!f)return;$('st-name').textContent='DECODING...';
   try{const buf=await ac().decodeAudioData(await f.arrayBuffer());installBuffer(buf,f.name.replace(/\.[^.]+$/,''));}catch(err){$('st-name').textContent='DECODE FAILED';}};
-$('import').onclick=()=>midiIn.click();
+$('import').onclick=()=>$('midimodal').classList.add('show');
 midiIn.onchange=async e=>{const f=e.target.files[0];if(!f)return;try{importMidi(await f.arrayBuffer());}catch(err){alert('MIDI parse failed: '+err);}};
 
 function buildRack(){const rack=$('rack');
@@ -727,13 +739,38 @@ async function atTransmit(){if(!state.buffer)return;if(!atSession){await atConne
     const up=await c.samples.upload({file,displayName:name,kind:'loop',bpm:state.bpm,tags:['snampler'],visibility:'private',preventTabClose:true});
     if(up instanceof Error)throw up;await up.uploaded;await up.ready;$('st-state').textContent='TRANSMIT DONE \u2014 '+name.toUpperCase();}
   catch(e){$('st-state').textContent='TRANSMIT FAILED';console.error('[AT]',e);}}
-async function openAtTimeline(){if(!atSession){await atConnect(true);if(!atSession)return;}$('atstep1').style.display='block';$('atlist').style.display='none';$('atlist').innerHTML='';$('atmsg').textContent='';$('aturl').value='';$('atmodal').classList.add('show');setTimeout(()=>$('aturl').focus(),0);}
-$('atopen').onclick=()=>{const u=$('aturl').value.trim();if(u)atOpenProject(u);};
-$('aturl').addEventListener('keydown',e=>{if(e.key==='Enter'){const u=$('aturl').value.trim();if(u)atOpenProject(u);}});
+let atMode='sample';
+async function openAtTimeline(mode){atMode=mode||'sample';if(!atSession){await atConnect(true);if(!atSession)return;}
+  $('atmodaltitle').textContent=atMode==='midi'?'Audiotool // MIDI':'Audiotool // Timeline';
+  $('atstep1cap').textContent=atMode==='midi'?'Paste a project link \u00b7 its note tracks get listed':'Paste a project link \u00b7 its timeline samples get listed';
+  $('atstep1').style.display='block';$('atlist').style.display='none';$('atlist').innerHTML='';$('atmsg').textContent='';$('aturl').value='';$('atmodal').classList.add('show');setTimeout(()=>$('aturl').focus(),0);}
+async function atOpenMidi(url){if(!atSession){await atConnect(true);if(!atSession)return;}const at=atSession;let nexus=null;
+  $('atmsg').textContent='OPENING PROJECT\u2026';
+  try{nexus=await at.open(url);if(nexus&&nexus.start)await nexus.start();
+    const collections=nexus.queryEntities.ofTypes('noteCollection').get()||[];
+    const regions=nexus.queryEntities.ofTypes('noteRegion').get()||[];
+    const tracks=nexus.queryEntities.ofTypes('noteTrack').get()||[];
+    const nameByColl=new Map();
+    for(const r of regions){const cLoc=r.fields&&r.fields.collection&&r.fields.collection.value!=null?r.fields.collection.value.toString():'';const tLoc=r.fields&&r.fields.track&&r.fields.track.value!=null?r.fields.track.value.toString():'';const nt=tracks.find(t=>t.location&&t.location.toString()===tLoc);if(cLoc&&!nameByColl.has(cLoc))nameByColl.set(cLoc,String((nt&&nt.fields&&nt.fields.displayName&&nt.fields.displayName.value)||('Track '+(nameByColl.size+1))));}
+    const items=[];let idx=0;
+    for(const coll of collections){idx++;const raw=(coll.fields&&coll.fields.notes&&coll.fields.notes.get&&coll.fields.notes.get())||[];if(!raw.length)continue;
+      const notes=raw.map(n=>{const f=n.fields||{};return {pitch:Number((f.pitch&&f.pitch.value)!=null?f.pitch.value:(n.pitch!=null?n.pitch:60)),velocity:Number((f.velocity&&f.velocity.value)!=null?f.velocity.value:(n.velocity!=null?n.velocity:100)),positionTicks:Number((f.positionTicks&&f.positionTicks.value)!=null?f.positionTicks.value:(n.positionTicks!=null?n.positionTicks:0)),durationTicks:Number((f.durationTicks&&f.durationTicks.value)!=null?f.durationTicks.value:(n.durationTicks!=null?n.durationTicks:240))};});
+      const nm=nameByColl.get(coll.location.toString())||('Track '+idx);items.push({name:nm,notes});}
+    if(!items.length){$('atmsg').textContent='NO MIDI NOTES IN THIS PROJECT';return;}
+    $('atmsg').textContent='';const list=$('atlist');list.innerHTML='';list.style.display='block';$('atstep1').style.display='none';
+    for(const it of items){const b=document.createElement('div');b.className='atitem';b.textContent=(it.name+' \u00b7 '+it.notes.length+' notes').toUpperCase().slice(0,46);b.onclick=()=>{importAtNotes(it.notes);$('atmodal').classList.remove('show');$('st-state').textContent='MIDI IMPORTED \u2014 '+it.notes.length+' NOTES';};list.append(b);}}
+  catch(e){$('atmsg').textContent='IMPORT FAILED \u2014 SEE CONSOLE (F12)';console.error('[AT]',e);}
+  finally{try{if(nexus&&nexus.stop)nexus.stop();}catch(e){}}}
+$('atopen').onclick=()=>{const u=$('aturl').value.trim();if(u)(atMode==='midi'?atOpenMidi:atOpenProject)(u);};
+$('aturl').addEventListener('keydown',e=>{if(e.key==='Enter'){const u=$('aturl').value.trim();if(u)(atMode==='midi'?atOpenMidi:atOpenProject)(u);}});
 $('atclose').onclick=()=>$('atmodal').classList.remove('show');
 $('atmodal').onpointerdown=e=>{if(e.target.id==='atmodal')$('atmodal').classList.remove('show');};
 $('srcDisk').onclick=()=>{$('srcmodal').classList.remove('show');fileIn.click();};
-$('srcAt').onclick=()=>{$('srcmodal').classList.remove('show');openAtTimeline();};
+$('srcAt').onclick=()=>{$('srcmodal').classList.remove('show');openAtTimeline('sample');};
+$('midiDisk').onclick=()=>{$('midimodal').classList.remove('show');midiIn.click();};
+$('midiAt').onclick=()=>{$('midimodal').classList.remove('show');openAtTimeline('midi');};
+$('midiclose').onclick=()=>$('midimodal').classList.remove('show');
+$('midimodal').onpointerdown=e=>{if(e.target.id==='midimodal')$('midimodal').classList.remove('show');};
 $('srcclose').onclick=()=>$('srcmodal').classList.remove('show');
 $('srcmodal').onpointerdown=e=>{if(e.target.id==='srcmodal')$('srcmodal').classList.remove('show');};
 $('expDisk').onclick=()=>{$('expmodal').classList.remove('show');exportToDisk();};
