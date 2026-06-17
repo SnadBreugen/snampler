@@ -308,7 +308,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 2.0.1</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 2.2.0</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -418,7 +418,7 @@ function encodeWav(buf){const ch=buf.numberOfChannels,len=buf.length,bps=2,ba=ch
 
 const state={bpm:120,root:60,notes:[],buffer:null,sampleName:null,playing:false,lengthBars:8,tool:'draw',loop:true,loopStart:0,loopEnd:768,stepW:1,snap:12,rowH:13,
   fxOrder:['eq','comp','mod','delay','rev'],
-  fx:{gain:1,pan:0,eqLo:0,eqMid:0,eqHi:0,compThr:-18,compRat:4,compOn:false,
+  fx:{gain:1,pan:0,eqLo:0,eqMid:0,eqHi:0,compThr:-18,compRat:2.5,compAtk:0.008,compMak:2,compOn:false,
     mod:{on:false,type:'chorus',rate:1.2,depth:0.5,mix:0.5,fb:0.3},
     delay:{on:false,time:300,fb:0.35,mix:0.35,damp:4000},
     rev:{on:false,size:1.8,mix:0.3,damp:7000,pre:0}}};
@@ -464,18 +464,18 @@ function buildFx(c,dest){const bus=c.createGain();
   const lo=c.createBiquadFilter();lo.type='lowshelf';lo.frequency.value=120;
   const md=c.createBiquadFilter();md.type='peaking';md.frequency.value=1000;md.Q.value=1;
   const hi=c.createBiquadFilter();hi.type='highshelf';hi.frequency.value=8000;
-  const cmp=c.createDynamicsCompressor();cmp.attack.value=0.003;cmp.release.value=0.25;cmp.knee.value=6;
-  const cmpIn=c.createGain(),cmpOut=c.createGain(),cmpDry=c.createGain(),cmpWet=c.createGain();
-  cmpDry.gain.value=1;cmpWet.gain.value=0;
-  cmpIn.connect(cmp);cmp.connect(cmpWet);cmpIn.connect(cmpDry);cmpWet.connect(cmpOut);cmpDry.connect(cmpOut);
+  const cmp=c.createDynamicsCompressor();cmp.attack.value=0.008;cmp.release.value=0.18;cmp.knee.value=20;
+  const cmpIn=c.createGain(),cmpOut=c.createGain(),cmpDry=c.createGain(),cmpWet=c.createGain(),cmpMk=c.createGain();
+  cmpDry.gain.value=1;cmpWet.gain.value=0;cmpMk.gain.value=1;
+  cmpIn.connect(cmp);cmp.connect(cmpMk);cmpMk.connect(cmpWet);cmpIn.connect(cmpDry);cmpWet.connect(cmpOut);cmpDry.connect(cmpOut);
   const mst=c.createGain();const pan=c.createStereoPanner();
   const mod=buildMod(c),dly=buildDelay(c),rev=buildReverb(c);
   lo.connect(md);md.connect(hi);mst.connect(pan);pan.connect(dest);
-  const fx={bus,lo,md,hi,cmp,cmpIn,cmpOut,cmpDry,cmpWet,mst,pan,mod,dly,rev,_c:c};
+  const fx={bus,lo,md,hi,cmp,cmpIn,cmpOut,cmpDry,cmpWet,cmpMk,mst,pan,mod,dly,rev,_c:c};
   fx.units={eq:{in:lo,out:hi},comp:{in:cmpIn,out:cmpOut},mod:{in:mod.inN,out:mod.out},delay:{in:dly.inN,out:dly.out},rev:{in:rev.inN,out:rev.out}};
   wireChain(fx);return fx;}
 function applyFx(n){if(!n)return;const f=state.fx;n.lo.gain.value=f.eqLo;n.md.gain.value=f.eqMid;n.hi.gain.value=f.eqHi;
-  n.cmp.threshold.value=f.compThr;n.cmp.ratio.value=f.compRat;if(n.cmpDry){n.cmpDry.gain.value=f.compOn?0:1;n.cmpWet.gain.value=f.compOn?1:0;}n.mst.gain.value=f.gain;n.pan.pan.value=f.pan;
+  n.cmp.threshold.value=f.compThr;n.cmp.ratio.value=f.compRat;try{n.cmp.attack.value=f.compAtk;}catch(e){}if(n.cmpMk)n.cmpMk.gain.value=Math.pow(10,(f.compMak||0)/20);if(n.cmpDry){n.cmpDry.gain.value=f.compOn?0:1;n.cmpWet.gain.value=f.compOn?1:0;}n.mst.gain.value=f.gain;n.pan.pan.value=f.pan;
   if(n.mod){const m=f.mod,M=n.mod;M.lfo.frequency.value=m.rate;
     M.chDepth.gain.value=0.006*m.depth;M.flDepth.gain.value=0.003*m.depth;M.phDepth.gain.value=900*m.depth;
     M.chG.gain.value=(m.on&&m.type==='chorus')?1:0;M.flG.gain.value=(m.on&&m.type==='flanger')?1:0;M.phG.gain.value=(m.on&&m.type==='phaser')?1:0;
@@ -656,8 +656,10 @@ function buildRack(){const rack=$('rack');
   mk('EQ',[{label:'Low',tip:'Low shelf at 120 Hz: weight in the bottom end (±15 dB)',min:-15,max:15,value:0,fmt:v=>Math.round(v),onInput:v=>{state.fx.eqLo=v;applyFx(liveFx);}},
            {label:'Mid',tip:'Peaking band at 1 kHz: body and presence (±15 dB)',min:-15,max:15,value:0,fmt:v=>Math.round(v),onInput:v=>{state.fx.eqMid=v;applyFx(liveFx);}},
            {label:'High',tip:'High shelf at 8 kHz: air and sparkle on top (±15 dB)',min:-15,max:15,value:0,fmt:v=>Math.round(v),onInput:v=>{state.fx.eqHi=v;applyFx(liveFx);}}],null,null,'eq');
-  mk('Comp',[{label:'Thresh',tip:'Compressor threshold: level above this gets reined in',min:-60,max:0,value:-18,fmt:v=>Math.round(v),onInput:v=>{state.fx.compThr=v;applyFx(liveFx);}},
-             {label:'Ratio',tip:'Compression ratio: how hard the overshoot is squeezed',min:1,max:20,value:4,fmt:v=>Math.round(v)+':1',onInput:v=>{state.fx.compRat=v;applyFx(liveFx);}}],
+  mk('Comp',[{label:'Thresh',tip:'Compressor threshold: level above this gets reined in (dB)',min:-60,max:0,value:-18,fmt:v=>Math.round(v),onInput:v=>{state.fx.compThr=v;applyFx(liveFx);}},
+             {label:'Ratio',tip:'Compression ratio: how hard the overshoot is squeezed',min:1,max:20,value:2.5,fmt:v=>(Math.round(v*10)/10)+':1',onInput:v=>{state.fx.compRat=v;applyFx(liveFx);}},
+             {label:'Attack',tip:'How fast the compressor clamps down after a peak (ms)',min:0.001,max:0.1,value:0.008,fmt:v=>Math.round(v*1000)+'ms',onInput:v=>{state.fx.compAtk=v;applyFx(liveFx);}},
+             {label:'Makeup',tip:'Make-up gain: lifts the level back up after compressing, so it sounds bigger not quieter (dB)',min:0,max:18,value:2,fmt:v=>'+'+(Math.round(v*10)/10),onInput:v=>{state.fx.compMak=v;applyFx(liveFx);}}],
      d=>()=>{state.fx.compOn=!state.fx.compOn;d.classList.toggle('on',state.fx.compOn);applyFx(liveFx);},null,'comp');
   mk('Mod',[{label:'Rate',min:0.05,max:8,value:1.2,fmt:v=>v.toFixed(2)+'Hz',onInput:v=>{state.fx.mod.rate=v;applyFx(liveFx);}},
             {label:'Depth',min:0,max:1,value:0.5,fmt:v=>v.toFixed(2),onInput:v=>{state.fx.mod.depth=v;applyFx(liveFx);}},
@@ -736,19 +738,22 @@ async function renderLoopWav(){ac();const sr=ctx.sampleRate,ls=loopSec(),loopFra
   const rendered=await off.startRendering();
   const out=off.createBuffer(2,loopFrames,sr),start=pre*loopFrames;
   for(let ch=0;ch<2;ch++){const sd=rendered.getChannelData(Math.min(ch,rendered.numberOfChannels-1)),dd=out.getChannelData(ch);for(let i=0;i<loopFrames;i++)dd[i]=sd[start+i]||0;}
+  // peak-normalise to -0.3 dBFS so the export sits at a consistent, full level
+  let peak=0;for(let ch=0;ch<2;ch++){const dd=out.getChannelData(ch);for(let i=0;i<loopFrames;i++){const a=Math.abs(dd[i]);if(a>peak)peak=a;}}
+  if(peak>1e-5){const target=Math.pow(10,-0.3/20),g=target/peak;if(g!==1)for(let ch=0;ch<2;ch++){const dd=out.getChannelData(ch);for(let i=0;i<loopFrames;i++)dd[i]*=g;}console.log('[AT] normalised: peak',peak.toFixed(3),'gain x'+g.toFixed(2));}
   return encodeWav(out);}
-async function exportToDisk(){if(!state.buffer)return;if(state.fromAT){$('st-state').textContent='EXPORT DENIED \u2014 AUDIOTOOL ASSET \u00b7 USE TRANSMIT';return;}$('st-state').textContent='RENDERING';
+async function exportToDisk(){if(!state.buffer)return;if(state.atLocked){$('st-state').textContent='EXPORT DENIED \u2014 ANOTHER USER\u2019S SAMPLE \u00b7 USE TRANSMIT';return;}$('st-state').textContent='RENDERING';
   try{const blob=await renderLoopWav();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(state.sampleName||'snampler')+'.wav';a.click();URL.revokeObjectURL(url);$('st-state').textContent=state.playing?'PLAYING':'READY';}
   catch(e){$('st-state').textContent='EXPORT FAILED';}}
-$('export').onclick=()=>{if(!state.buffer)return;$('expname').value='';$('expname').placeholder=atDefaultLoopName();var dd=$('expDisk');if(dd){dd.disabled=!!state.fromAT;dd.title=state.fromAT?'Disabled: this sample came from Audiotool — keep it on-platform via To Audiotool':'';}['visPrivate','visPublic'].forEach(id=>{const b=$(id);if(b)b.classList.toggle('picked',id===(atVisibility==='unlisted'?'visPrivate':'visPublic'));});$('expmodal').classList.add('show');};
+$('export').onclick=()=>{if(!state.buffer)return;$('expname').value='';$('expname').placeholder=atDefaultLoopName();var dd=$('expDisk');if(dd){dd.disabled=!!state.atLocked;dd.title=state.atLocked?'Disabled: this sample belongs to another Audiotool user \u2014 keep it on-platform via To Audiotool':'';}['visPrivate','visPublic'].forEach(id=>{const b=$(id);if(b)b.classList.toggle('picked',id===(atVisibility==='unlisted'?'visPrivate':'visPublic'));});$('expmodal').classList.add('show');};
 
-function installBuffer(buf,name,origin){state.buffer=buf;state.fromAT=(origin==='at');state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;updateSmpCap();drawMain();updateMainInfo();}
+function installBuffer(buf,name,origin,owned){state.buffer=buf;state.fromAT=(origin==='at');state.atLocked=(origin==='at'&&!owned);state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;updateSmpCap();drawMain();updateMainInfo();}
 
 // ---------- Audiotool (Nexus SDK) ----------
 const AT_CLIENT_ID='6ca4ce9a-461d-44a3-ac32-145930ab799a';
 const AT_REDIRECT='https://snadbreugen.github.io/snampler/'; // must match the redirect URI registered on developer.audiotool.com, exactly
 const AT_SCOPE='sample:read sample:write project:read project:write';
-let atSession=null,atAuth=null,atSdkPromise=null,atInitDone=false,atVisibility="unlisted";
+let atSession=null,atAuth=null,atSdkPromise=null,atInitDone=false,atVisibility="unlisted",atUserName="";
 async function loadAtSdk(){if(!atSdkPromise)atSdkPromise=import('./nexus.bundle.js');const m=await atSdkPromise;return m.default||m;}
 function atStatus(t){var s=$('st-state');if(s)s.textContent=t;}
 function atSetConnected(on){var u=$('atUplink');if(u){u.classList.toggle('on',on);u.textContent=on?'Uplink \u2713':'Uplink';}}
@@ -758,14 +763,14 @@ async function atInit(){if(atInitDone)return;atInitDone=true;
     console.log('[AT] sdk ready, creating client \u2026');
     atAuth=await sdk.audiotool({clientId:AT_CLIENT_ID,redirectUrl:AT_REDIRECT,scope:AT_SCOPE});
     console.log('[AT] auth status =',atAuth&&atAuth.status);
-    if(atAuth&&atAuth.status!=='unauthenticated'){atSession=atAuth;atSetConnected(true);atStatus('UPLINK OK');}
+    if(atAuth&&atAuth.status!=='unauthenticated'){atSession=atAuth;atUserName=String(atAuth.userName||'');console.log('[AT] logged in as:',atUserName);atSetConnected(true);atStatus('UPLINK OK');}
   }catch(e){console.error('[AT] init failed',e);atStatus('UPLINK FAILED \u2014 SEE CONSOLE');}}
 function atUplinkClick(){
   if(location.protocol==='file:'){atStatus('UPLINK NEEDS THE LIVE URL');return;}
   if(atSession){atStatus('UPLINK OK \u2014 ALREADY CONNECTED');return;}
   if(!atAuth){atStatus('UPLINK \u2026 STILL CONNECTING, CLICK AGAIN');atInit();return;}
   if(atAuth.status==='unauthenticated'){console.log('[AT] login() \u2014 redirecting');atStatus('UPLINK \u2026 REDIRECTING TO AUDIOTOOL');try{atAuth.login();}catch(e){console.error('[AT] login failed',e);atStatus('UPLINK FAILED \u2014 SEE CONSOLE');}return;}
-  atSession=atAuth;atSetConnected(true);atStatus('UPLINK OK');}
+  atSession=atAuth;atUserName=String(atAuth.userName||'');console.log('[AT] logged in as:',atUserName);atSetConnected(true);atStatus('UPLINK OK');}
 async function atConnect(interactive){if(atSession)return atSession;
   if(!atAuth)await atInit();
   if(atSession)return atSession;
@@ -781,14 +786,18 @@ async function atOpenProject(url){if(!atSession){await atConnect(true);if(!atSes
     $('atmsg').textContent='';const list=$('atlist');list.innerHTML='';list.style.display='block';$('atstep1').style.display='none';
     for(const nm of seen){let meta=null;try{const m=await c.samples.get(nm);if(!(m instanceof Error))meta=m;}catch(e){}
       const label=String((meta&&meta.displayName)||nm).toUpperCase().slice(0,46);
-      const b=document.createElement('div');b.className='atitem';b.textContent=label;b.onclick=()=>atDownload(c,{name:(meta&&meta.name)||nm,bpm:(meta&&Number(meta.bpm))||0,displayName:(meta&&meta.displayName)||''},projBpm);list.append(b);}}
+      const b=document.createElement('div');b.className='atitem';b.textContent=label;b.onclick=()=>atDownload(c,{name:(meta&&meta.name)||nm,bpm:(meta&&Number(meta.bpm))||0,displayName:(meta&&meta.displayName)||'',ownerName:(meta&&meta.ownerName)||''},projBpm);list.append(b);}}
   catch(e){$('atmsg').textContent='IMPORT FAILED \u2014 SEE CONSOLE (F12)';console.error('[AT]',e);}
   finally{try{if(nexus&&nexus.stop)nexus.stop();}catch(e){}}}
 async function atDownload(c,sample,projBpm){try{$('atmsg').textContent='DOWNLOADING\u2026';
     const blob=await c.samples.download(sample.name||sample,{format:'wav'});if(blob instanceof Error)throw blob;
-    const buf=await ac().decodeAudioData(await blob.arrayBuffer());installBuffer(buf,String(sample.displayName||sample.name||'AT SAMPLE'),'at');
+    const owned=atOwnsSample(sample.ownerName);console.log('[AT] sample owner:',sample.ownerName||'(unknown)','\u00b7 me:',atUserName,'\u00b7 owned:',owned);
+    const buf=await ac().decodeAudioData(await blob.arrayBuffer());installBuffer(buf,String(sample.displayName||sample.name||'AT SAMPLE'),'at',owned);
     if(projBpm>=30&&projBpm<=300)setBpm(Math.round(projBpm));$('atmodal').classList.remove('show');}
   catch(e){$('atmsg').textContent='DOWNLOAD FAILED \u2014 SEE CONSOLE';console.error('[AT]',e);}}
+function atOwnsSample(ownerName){if(!ownerName||!atUserName)return false;const o=String(ownerName),u=String(atUserName);
+  // match whether userName is bare uuid, users/{uuid}, or display handle
+  return o===u||o.endsWith('/'+u)||u.endsWith('/'+o)||o.split('/').pop()===u.split('/').pop();}
 function atSampleBase(){return (state.sampleName||'sample').toString().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'sample';}
 function atDefaultLoopName(){return atSampleBase()+'_loop_snample';}
 function atLoopName(n){n=(n||'').toString().trim();return n?n.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''):atDefaultLoopName();}
@@ -805,11 +814,20 @@ async function atTransmit(nameArg,projectUrl){if(!state.buffer)return;if(!atSess
       nexus=await atSession.open(projectUrl);if(nexus&&nexus.start)await nexus.start();
       const loopBars=Math.round((state.loopEnd-state.loopStart)/BARSTEPS);
       const loopTicks=loopBars*15360; // 15360 ticks per bar at 4/4
+      // remember existing audio devices + lowest free spot so the new device doesn't overlap the stagebox
+      let prevIds=new Set(),maxY=0,anyDev=false;
+      try{const devs=nexus.queryEntities.ofTypes('audioDevice').get()||[];devs.forEach(d=>{prevIds.add(d.location?d.location.toString():d.id);anyDev=true;const y=(d.fields&&d.fields.positionY&&d.fields.positionY.value)||0;const x=(d.fields&&d.fields.positionX&&d.fields.positionX.value)||0;if(y>maxY)maxY=y;});console.log('[AT] existing audio devices:',devs.length);}catch(e){console.warn('[AT] device scan failed',e);}
       await nexus.modify(t=>{t.insertSample(sampleMeta,{
         sample:{bpm:state.bpm},
         region:{positionTicks:0,durationTicks:loopTicks},
         displayName:name
       });});
+      // find the newly created device and move it to a free spot below the others
+      try{await nexus.modify(t=>{const devs=nexus.queryEntities.ofTypes('audioDevice').get()||[];
+        const fresh=devs.filter(d=>!prevIds.has(d.location?d.location.toString():d.id));
+        const target=anyDev?(maxY+220):260;
+        fresh.forEach((d,i)=>{if(d.fields&&d.fields.positionX)t.update(d.fields.positionX,80);if(d.fields&&d.fields.positionY)t.update(d.fields.positionY,target+i*220);});
+        console.log('[AT] repositioned new devices:',fresh.length,'to y',target);});}catch(e){console.warn('[AT] reposition failed',e);}
       console.log('[AT] placed on timeline:',name,'bars:',loopBars);
       $('st-state').textContent='TIMELINE \u2014 '+name;
     } else {
