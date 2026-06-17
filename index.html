@@ -308,7 +308,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.9.3</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 1.9.4</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -421,7 +421,7 @@ const state={bpm:120,root:60,notes:[],buffer:null,sampleName:null,playing:false,
     mod:{on:false,type:'chorus',rate:1.2,depth:0.5,mix:0.5,fb:0.3},
     delay:{on:false,time:300,fb:0.35,mix:0.35,damp:4000},
     rev:{on:false,size:1.8,mix:0.3,damp:7000,pre:0}}};
-state.smp={startFrac:0,endFrac:1,fadeIn:0.005,fadeOut:0.012,reverse:false,mode:'classic',gPos:0,gSize:0.09,gDens:25,gSpray:0.12,gScan:0};state.bufferRev=null;state.peaks=null;state.sel=new Set();
+state.smp={startFrac:0,endFrac:1,fadeIn:0.002,fadeOut:0.005,reverse:false,mode:'classic',gPos:0,gSize:0.09,gDens:25,gSpray:0.12,gScan:0};state.bufferRev=null;state.peaks=null;state.sel=new Set();
 let totalSteps=state.lengthBars*BARSTEPS, gridW=totalSteps*stepW();
 let ctx=null,liveFx=null,sources=[],raf=0,loopTimer=0,loopT=0,playT0=0,meterNode=null,meterVal=0,meterRAF=0;
 const ac=()=>{if(!ctx){ctx=new (window.AudioContext||window.webkitAudioContext)();liveFx=buildFx(ctx,ctx.destination);applyFx(liveFx);meterNode=ctx.createAnalyser();meterNode.fftSize=512;liveFx.pan.connect(meterNode);startMeter();}return ctx;};
@@ -464,14 +464,17 @@ function buildFx(c,dest){const bus=c.createGain();
   const md=c.createBiquadFilter();md.type='peaking';md.frequency.value=1000;md.Q.value=1;
   const hi=c.createBiquadFilter();hi.type='highshelf';hi.frequency.value=8000;
   const cmp=c.createDynamicsCompressor();cmp.attack.value=0.003;cmp.release.value=0.25;cmp.knee.value=6;
+  const cmpIn=c.createGain(),cmpOut=c.createGain(),cmpDry=c.createGain(),cmpWet=c.createGain();
+  cmpDry.gain.value=1;cmpWet.gain.value=0;
+  cmpIn.connect(cmp);cmp.connect(cmpWet);cmpIn.connect(cmpDry);cmpWet.connect(cmpOut);cmpDry.connect(cmpOut);
   const mst=c.createGain();const pan=c.createStereoPanner();
   const mod=buildMod(c),dly=buildDelay(c),rev=buildReverb(c);
   lo.connect(md);md.connect(hi);mst.connect(pan);pan.connect(dest);
-  const fx={bus,lo,md,hi,cmp,mst,pan,mod,dly,rev,_c:c};
-  fx.units={eq:{in:lo,out:hi},comp:{in:cmp,out:cmp},mod:{in:mod.inN,out:mod.out},delay:{in:dly.inN,out:dly.out},rev:{in:rev.inN,out:rev.out}};
+  const fx={bus,lo,md,hi,cmp,cmpIn,cmpOut,cmpDry,cmpWet,mst,pan,mod,dly,rev,_c:c};
+  fx.units={eq:{in:lo,out:hi},comp:{in:cmpIn,out:cmpOut},mod:{in:mod.inN,out:mod.out},delay:{in:dly.inN,out:dly.out},rev:{in:rev.inN,out:rev.out}};
   wireChain(fx);return fx;}
 function applyFx(n){if(!n)return;const f=state.fx;n.lo.gain.value=f.eqLo;n.md.gain.value=f.eqMid;n.hi.gain.value=f.eqHi;
-  n.cmp.threshold.value=f.compOn?f.compThr:0;n.cmp.ratio.value=f.compOn?f.compRat:1;n.mst.gain.value=f.gain;n.pan.pan.value=f.pan;
+  n.cmp.threshold.value=f.compThr;n.cmp.ratio.value=f.compRat;if(n.cmpDry){n.cmpDry.gain.value=f.compOn?0:1;n.cmpWet.gain.value=f.compOn?1:0;}n.mst.gain.value=f.gain;n.pan.pan.value=f.pan;
   if(n.mod){const m=f.mod,M=n.mod;M.lfo.frequency.value=m.rate;
     M.chDepth.gain.value=0.006*m.depth;M.flDepth.gain.value=0.003*m.depth;M.phDepth.gain.value=900*m.depth;
     M.chG.gain.value=(m.on&&m.type==='chorus')?1:0;M.flG.gain.value=(m.on&&m.type==='flanger')?1:0;M.phG.gain.value=(m.on&&m.type==='phaser')?1:0;
