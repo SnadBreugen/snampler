@@ -308,7 +308,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.9.2</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 1.9.3</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -722,15 +722,15 @@ $('play').onclick=play;$('stop').onclick=stop;$('tostart').onclick=jumpStart;
 $('grid').onchange=e=>{state.snap=+e.target.value;buildRoll();};
 window.addEventListener('keydown',ev=>{const t=document.activeElement;if(t&&(t.tagName==='INPUT'||t.tagName==='SELECT'))return;if(ev.key==='Home'){ev.preventDefault();jumpStart();}});
 function fxTailSeconds(){const f=state.fx;let t=0;if(f.rev.on)t=Math.max(t,f.rev.size+f.rev.pre/1000);if(f.delay.on){const fb=clamp(f.delay.fb,0,0.95);const reps=fb>0.01?Math.min(12,Math.log(0.05)/Math.log(fb)):1;t=Math.max(t,f.delay.time/1000*reps);}if(f.mod.on)t=Math.max(t,0.1);return t;}
-async function renderLoopWav(){const sr=44100,ls=loopSec(),loopFrames=Math.round(ls*sr);
+async function renderLoopWav(){const sr=(state.buffer&&state.buffer.sampleRate)||44100,ls=loopSec(),loopFrames=Math.round(ls*sr);
   // Render several loop passes so time-based FX (reverb/delay) are fully wrapped:
   // the exported take is the LAST pass, whose start already carries the tail from the prior passes.
   const pre=clamp(Math.ceil(fxTailSeconds()/ls),0,16),reps=pre+1;
-  const off=new OfflineAudioContext(2,loopFrames*reps+sr,sr);
+  const off=new OfflineAudioContext(2,loopFrames*reps+Math.round(sr),sr);
   const fx=buildFx(off,off.destination);applyFx(fx);
   for(let i=0;i<reps;i++)scheduleWindow(off,fx,i*ls,null);
   const rendered=await off.startRendering();
-  const ob=new OfflineAudioContext(2,loopFrames,sr),out=ob.createBuffer(2,loopFrames,sr),start=pre*loopFrames;
+  const out=off.createBuffer(2,loopFrames,sr),start=pre*loopFrames;
   for(let ch=0;ch<2;ch++){const sd=rendered.getChannelData(Math.min(ch,rendered.numberOfChannels-1)),dd=out.getChannelData(ch);for(let i=0;i<loopFrames;i++)dd[i]=sd[start+i]||0;}
   return encodeWav(out);}
 async function exportToDisk(){if(!state.buffer)return;if(state.fromAT){$('st-state').textContent='EXPORT DENIED \u2014 AUDIOTOOL ASSET \u00b7 USE TRANSMIT';return;}$('st-state').textContent='RENDERING';
