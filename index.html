@@ -308,7 +308,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.9.4</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 2.0.0</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -358,6 +358,7 @@
       <div class="dimcap" style="margin-bottom:11px">Where does the loop go? The effect tail is rendered settled from the start either way.</div>
       <div style="margin-bottom:12px"><div class="dimcap" style="margin-bottom:6px">Name for the Audiotool upload &middot; blank = auto</div><input type="text" id="expname" class="aturl" spellcheck="false" placeholder="vocalchop_loop_snample"></div>
       <div style="margin-bottom:10px"><div class="dimcap" style="margin-bottom:6px">Visibility in Audiotool library</div><div style="display:flex;gap:8px"><button class="btn choo" id="visPrivate" style="flex:1;padding:10px 6px;font-size:11px">Unlisted</button><button class="btn choo" id="visPublic" style="flex:1;padding:10px 6px;font-size:11px">Public</button></div></div>
+      <div style="margin-bottom:10px"><div class="dimcap" style="margin-bottom:6px">Audiotool project link &middot; blank = library only</div><input type="text" id="expproject" class="aturl" spellcheck="false" placeholder="https://www.audiotool.com/studio?project=…" title="Paste a project link to place the loop directly on its timeline. Leave blank to upload to your library only."></div>
       <div class="choorow"><button class="btn choo" id="expDisk">To Disk (WAV)</button><button class="btn choo" id="expAt">To Audiotool</button></div>
     </div>
   </div>
@@ -791,13 +792,31 @@ async function atDownload(c,sample,projBpm){try{$('atmsg').textContent='DOWNLOAD
 function atSampleBase(){return (state.sampleName||'sample').toString().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'sample';}
 function atDefaultLoopName(){return atSampleBase()+'_loop_snample';}
 function atLoopName(n){n=(n||'').toString().trim();return n?n.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''):atDefaultLoopName();}
-async function atTransmit(nameArg){if(!state.buffer)return;if(!atSession){await atConnect(true);if(!atSession)return;}
+async function atTransmit(nameArg,projectUrl){if(!state.buffer)return;if(!atSession){await atConnect(true);if(!atSession)return;}
+  let nexus=null;
   try{$('st-state').textContent='TRANSMIT \u2026';const blob=await renderLoopWav();const name=atLoopName(nameArg);
     const file=new File([blob],name+'.wav',{type:'audio/wav'});const c=(atSession&&atSession.samples)?atSession:(atSession.client||atSession);console.log('[AT] uploading',name,'bpm',state.bpm);
-    if(!(c.samples&&c.samples.upload)){$('st-state').textContent='TRANSMIT FAILED';return;}
+    if(!(c.samples&&c.samples.upload)){$('st-state').textContent='TRANSMIT FAILED \u2014 NO SAMPLES API';return;}
     const up=await c.samples.upload({file,displayName:name,kind:'loop',bpm:state.bpm,tags:['snampler'],visibility:atVisibility});
-    if(up instanceof Error)throw up;await up.uploaded;const res=await up.ready;if(res instanceof Error)throw res;console.log('[AT] uploaded ok:',name);$('st-state').textContent='TRANSMIT DONE \u2014 '+name;}
-  catch(e){$('st-state').textContent='TRANSMIT FAILED';console.error('[AT]',e);}}
+    if(up instanceof Error)throw up;await up.uploaded;const sampleMeta=await up.ready;if(sampleMeta instanceof Error)throw sampleMeta;
+    console.log('[AT] uploaded ok:',name,sampleMeta.name||'');
+    if(projectUrl){
+      $('st-state').textContent='PLACING ON TIMELINE \u2026';
+      nexus=await atSession.open(projectUrl);if(nexus&&nexus.start)await nexus.start();
+      const loopBars=Math.round((state.loopEnd-state.loopStart)/BARSTEPS);
+      const loopTicks=loopBars*15360; // 15360 ticks per bar at 4/4
+      await nexus.modify(t=>{t.insertSample(sampleMeta,{
+        sample:{bpm:state.bpm},
+        region:{positionTicks:0,durationTicks:loopTicks},
+        displayName:name
+      });});
+      console.log('[AT] placed on timeline:',name,'bars:',loopBars);
+      $('st-state').textContent='TIMELINE \u2014 '+name;
+    } else {
+      $('st-state').textContent='TRANSMIT DONE \u2014 '+name;
+    }
+  }catch(e){$('st-state').textContent='TRANSMIT FAILED \u2014 SEE CONSOLE (F12)';console.error('[AT] transmit error',e);}
+  finally{try{if(nexus&&nexus.stop)nexus.stop();}catch(e){}}}
 let atMode='sample';
 async function openAtTimeline(mode){atMode=mode||'sample';if(!atSession){await atConnect(true);if(!atSession)return;}
   $('atmodaltitle').textContent=atMode==='midi'?'Audiotool // MIDI':'Audiotool // Timeline';
@@ -855,7 +874,7 @@ $('srcmodal').onpointerdown=e=>{if(e.target.id==='srcmodal')$('srcmodal').classL
 $('expDisk').onclick=()=>{$('expmodal').classList.remove('show');exportToDisk();};
 $('visPrivate').onclick=()=>{atVisibility='unlisted';$('visPrivate').classList.add('picked');$('visPublic').classList.remove('picked');};
 $('visPublic').onclick=()=>{atVisibility='public';$('visPublic').classList.add('picked');$('visPrivate').classList.remove('picked');};
-$('expAt').onclick=()=>{const v=$('expname').value;$('expmodal').classList.remove('show');atTransmit(v);};
+$('expAt').onclick=()=>{const v=$('expname').value,p=$('expproject').value.trim();$('expmodal').classList.remove('show');atTransmit(v,p);};
 $('expclose').onclick=()=>$('expmodal').classList.remove('show');
 $('expmodal').onpointerdown=e=>{if(e.target.id==='expmodal')$('expmodal').classList.remove('show');};
 $('atUplink').onclick=atUplinkClick;atInit();
