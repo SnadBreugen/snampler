@@ -308,7 +308,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.9.1</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 1.9.2</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -357,7 +357,7 @@
       <h4>Export // Destination<span class="seg" style="margin-left:auto"><button class="btn sm" id="expclose">Close &#10005;</button></span></h4>
       <div class="dimcap" style="margin-bottom:11px">Where does the loop go? The effect tail is rendered settled from the start either way.</div>
       <div style="margin-bottom:12px"><div class="dimcap" style="margin-bottom:6px">Name for the Audiotool upload &middot; blank = auto</div><input type="text" id="expname" class="aturl" spellcheck="false" placeholder="vocalchop_loop_snample"></div>
-      <div style="margin-bottom:10px"><div class="dimcap" style="margin-bottom:6px">Visibility in Audiotool library</div><div style="display:flex;gap:8px"><button class="btn choo" id="visPrivate" style="flex:1;padding:10px 6px;font-size:11px">Private</button><button class="btn choo" id="visPublic" style="flex:1;padding:10px 6px;font-size:11px">Public</button></div></div>
+      <div style="margin-bottom:10px"><div class="dimcap" style="margin-bottom:6px">Visibility in Audiotool library</div><div style="display:flex;gap:8px"><button class="btn choo" id="visPrivate" style="flex:1;padding:10px 6px;font-size:11px">Unlisted</button><button class="btn choo" id="visPublic" style="flex:1;padding:10px 6px;font-size:11px">Public</button></div></div>
       <div class="choorow"><button class="btn choo" id="expDisk">To Disk (WAV)</button><button class="btn choo" id="expAt">To Audiotool</button></div>
     </div>
   </div>
@@ -736,7 +736,7 @@ async function renderLoopWav(){const sr=44100,ls=loopSec(),loopFrames=Math.round
 async function exportToDisk(){if(!state.buffer)return;if(state.fromAT){$('st-state').textContent='EXPORT DENIED \u2014 AUDIOTOOL ASSET \u00b7 USE TRANSMIT';return;}$('st-state').textContent='RENDERING';
   try{const blob=await renderLoopWav();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(state.sampleName||'snampler')+'.wav';a.click();URL.revokeObjectURL(url);$('st-state').textContent=state.playing?'PLAYING':'READY';}
   catch(e){$('st-state').textContent='EXPORT FAILED';}}
-$('export').onclick=()=>{if(!state.buffer)return;$('expname').value='';$('expname').placeholder=atDefaultLoopName();var dd=$('expDisk');if(dd){dd.disabled=!!state.fromAT;dd.title=state.fromAT?'Disabled: this sample came from Audiotool — keep it on-platform via To Audiotool':'';}['visPrivate','visPublic'].forEach(id=>{const b=$(id);if(b)b.classList.toggle('picked',id===(atVisibility==='private'?'visPrivate':'visPublic'));});$('expmodal').classList.add('show');};
+$('export').onclick=()=>{if(!state.buffer)return;$('expname').value='';$('expname').placeholder=atDefaultLoopName();var dd=$('expDisk');if(dd){dd.disabled=!!state.fromAT;dd.title=state.fromAT?'Disabled: this sample came from Audiotool — keep it on-platform via To Audiotool':'';}['visPrivate','visPublic'].forEach(id=>{const b=$(id);if(b)b.classList.toggle('picked',id===(atVisibility==='unlisted'?'visPrivate':'visPublic'));});$('expmodal').classList.add('show');};
 
 function installBuffer(buf,name,origin){state.buffer=buf;state.fromAT=(origin==='at');state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;updateSmpCap();drawMain();updateMainInfo();}
 
@@ -744,7 +744,7 @@ function installBuffer(buf,name,origin){state.buffer=buf;state.fromAT=(origin===
 const AT_CLIENT_ID='6ca4ce9a-461d-44a3-ac32-145930ab799a';
 const AT_REDIRECT='https://snadbreugen.github.io/snampler/'; // must match the redirect URI registered on developer.audiotool.com, exactly
 const AT_SCOPE='sample:read sample:write project:read project:write';
-let atSession=null,atAuth=null,atSdkPromise=null,atInitDone=false,atVisibility="private";
+let atSession=null,atAuth=null,atSdkPromise=null,atInitDone=false,atVisibility="unlisted";
 async function loadAtSdk(){if(!atSdkPromise)atSdkPromise=import('./nexus.bundle.js');const m=await atSdkPromise;return m.default||m;}
 function atStatus(t){var s=$('st-state');if(s)s.textContent=t;}
 function atSetConnected(on){var u=$('atUplink');if(u){u.classList.toggle('on',on);u.textContent=on?'Uplink \u2713':'Uplink';}}
@@ -850,7 +850,7 @@ $('midimodal').onpointerdown=e=>{if(e.target.id==='midimodal')$('midimodal').cla
 $('srcclose').onclick=()=>$('srcmodal').classList.remove('show');
 $('srcmodal').onpointerdown=e=>{if(e.target.id==='srcmodal')$('srcmodal').classList.remove('show');};
 $('expDisk').onclick=()=>{$('expmodal').classList.remove('show');exportToDisk();};
-$('visPrivate').onclick=()=>{atVisibility='private';$('visPrivate').classList.add('picked');$('visPublic').classList.remove('picked');};
+$('visPrivate').onclick=()=>{atVisibility='unlisted';$('visPrivate').classList.add('picked');$('visPublic').classList.remove('picked');};
 $('visPublic').onclick=()=>{atVisibility='public';$('visPublic').classList.add('picked');$('visPrivate').classList.remove('picked');};
 $('expAt').onclick=()=>{const v=$('expname').value;$('expmodal').classList.remove('show');atTransmit(v);};
 $('expclose').onclick=()=>$('expmodal').classList.remove('show');
