@@ -1,6 +1,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SNAMPLER</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231a1a1a'/%3E%3Crect x='4' y='14' width='3' height='10' rx='1' fill='%23E8743A'/%3E%3Crect x='9' y='9' width='3' height='15' rx='1' fill='%23E8743A'/%3E%3Crect x='14' y='5' width='3' height='22' rx='1' fill='%23E8743A'/%3E%3Crect x='19' y='10' width='3' height='14' rx='1' fill='%23E8743A'/%3E%3Crect x='24' y='15' width='3' height='8' rx='1' fill='%23E8743A'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -207,6 +208,7 @@
   .fxbartag{flex:1;text-align:center}
   .choorow{display:flex;gap:12px}
   .choo{flex:1;justify-content:center;padding:18px 14px;font-size:13px}
+  .choo.picked{border-color:var(--orange);color:var(--orange)}
   .modsel{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;background:var(--surface);color:var(--ink2);border:1px solid var(--edge);border-radius:5px;padding:1px 3px;cursor:pointer}
   .pwrdot{width:9px;height:9px;border-radius:50%;background:#d7cfbe;cursor:pointer}
   .pwrdot.on{background:var(--orange);box-shadow:0 0 6px var(--orange)}
@@ -306,7 +308,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 1.9.0</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 1.9.1</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -355,6 +357,7 @@
       <h4>Export // Destination<span class="seg" style="margin-left:auto"><button class="btn sm" id="expclose">Close &#10005;</button></span></h4>
       <div class="dimcap" style="margin-bottom:11px">Where does the loop go? The effect tail is rendered settled from the start either way.</div>
       <div style="margin-bottom:12px"><div class="dimcap" style="margin-bottom:6px">Name for the Audiotool upload &middot; blank = auto</div><input type="text" id="expname" class="aturl" spellcheck="false" placeholder="vocalchop_loop_snample"></div>
+      <div style="margin-bottom:10px"><div class="dimcap" style="margin-bottom:6px">Visibility in Audiotool library</div><div style="display:flex;gap:8px"><button class="btn choo" id="visPrivate" style="flex:1;padding:10px 6px;font-size:11px">Private</button><button class="btn choo" id="visPublic" style="flex:1;padding:10px 6px;font-size:11px">Public</button></div></div>
       <div class="choorow"><button class="btn choo" id="expDisk">To Disk (WAV)</button><button class="btn choo" id="expAt">To Audiotool</button></div>
     </div>
   </div>
@@ -733,7 +736,7 @@ async function renderLoopWav(){const sr=44100,ls=loopSec(),loopFrames=Math.round
 async function exportToDisk(){if(!state.buffer)return;if(state.fromAT){$('st-state').textContent='EXPORT DENIED \u2014 AUDIOTOOL ASSET \u00b7 USE TRANSMIT';return;}$('st-state').textContent='RENDERING';
   try{const blob=await renderLoopWav();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(state.sampleName||'snampler')+'.wav';a.click();URL.revokeObjectURL(url);$('st-state').textContent=state.playing?'PLAYING':'READY';}
   catch(e){$('st-state').textContent='EXPORT FAILED';}}
-$('export').onclick=()=>{if(!state.buffer)return;$('expname').value='';$('expname').placeholder=atDefaultLoopName();var dd=$('expDisk');if(dd){dd.disabled=!!state.fromAT;dd.title=state.fromAT?'Disabled: this sample came from Audiotool \u2014 keep it on-platform via To Audiotool':'';}$('expmodal').classList.add('show');};
+$('export').onclick=()=>{if(!state.buffer)return;$('expname').value='';$('expname').placeholder=atDefaultLoopName();var dd=$('expDisk');if(dd){dd.disabled=!!state.fromAT;dd.title=state.fromAT?'Disabled: this sample came from Audiotool — keep it on-platform via To Audiotool':'';}['visPrivate','visPublic'].forEach(id=>{const b=$(id);if(b)b.classList.toggle('picked',id===(atVisibility==='private'?'visPrivate':'visPublic'));});$('expmodal').classList.add('show');};
 
 function installBuffer(buf,name,origin){state.buffer=buf;state.fromAT=(origin==='at');state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;updateSmpCap();drawMain();updateMainInfo();}
 
@@ -741,7 +744,7 @@ function installBuffer(buf,name,origin){state.buffer=buf;state.fromAT=(origin===
 const AT_CLIENT_ID='6ca4ce9a-461d-44a3-ac32-145930ab799a';
 const AT_REDIRECT='https://snadbreugen.github.io/snampler/'; // must match the redirect URI registered on developer.audiotool.com, exactly
 const AT_SCOPE='sample:read sample:write project:read project:write';
-let atSession=null,atAuth=null,atSdkPromise=null,atInitDone=false;
+let atSession=null,atAuth=null,atSdkPromise=null,atInitDone=false,atVisibility="private";
 async function loadAtSdk(){if(!atSdkPromise)atSdkPromise=import('./nexus.bundle.js');const m=await atSdkPromise;return m.default||m;}
 function atStatus(t){var s=$('st-state');if(s)s.textContent=t;}
 function atSetConnected(on){var u=$('atUplink');if(u){u.classList.toggle('on',on);u.textContent=on?'Uplink \u2713':'Uplink';}}
@@ -789,7 +792,7 @@ async function atTransmit(nameArg){if(!state.buffer)return;if(!atSession){await 
   try{$('st-state').textContent='TRANSMIT \u2026';const blob=await renderLoopWav();const name=atLoopName(nameArg);
     const file=new File([blob],name+'.wav',{type:'audio/wav'});const c=(atSession&&atSession.samples)?atSession:(atSession.client||atSession);console.log('[AT] uploading',name,'bpm',state.bpm);
     if(!(c.samples&&c.samples.upload)){$('st-state').textContent='TRANSMIT FAILED';return;}
-    const up=await c.samples.upload({file,displayName:name,kind:'loop',bpm:state.bpm,tags:['snampler'],visibility:'unlisted'});
+    const up=await c.samples.upload({file,displayName:name,kind:'loop',bpm:state.bpm,tags:['snampler'],visibility:atVisibility});
     if(up instanceof Error)throw up;await up.uploaded;const res=await up.ready;if(res instanceof Error)throw res;console.log('[AT] uploaded ok:',name);$('st-state').textContent='TRANSMIT DONE \u2014 '+name;}
   catch(e){$('st-state').textContent='TRANSMIT FAILED';console.error('[AT]',e);}}
 let atMode='sample';
@@ -847,6 +850,8 @@ $('midimodal').onpointerdown=e=>{if(e.target.id==='midimodal')$('midimodal').cla
 $('srcclose').onclick=()=>$('srcmodal').classList.remove('show');
 $('srcmodal').onpointerdown=e=>{if(e.target.id==='srcmodal')$('srcmodal').classList.remove('show');};
 $('expDisk').onclick=()=>{$('expmodal').classList.remove('show');exportToDisk();};
+$('visPrivate').onclick=()=>{atVisibility='private';$('visPrivate').classList.add('picked');$('visPublic').classList.remove('picked');};
+$('visPublic').onclick=()=>{atVisibility='public';$('visPublic').classList.add('picked');$('visPrivate').classList.remove('picked');};
 $('expAt').onclick=()=>{const v=$('expname').value;$('expmodal').classList.remove('show');atTransmit(v);};
 $('expclose').onclick=()=>$('expmodal').classList.remove('show');
 $('expmodal').onpointerdown=e=>{if(e.target.id==='expmodal')$('expmodal').classList.remove('show');};
