@@ -40,7 +40,7 @@
   .bg-copy h5{margin:0 0 9px;font-size:11px;letter-spacing:.28em;color:rgba(255,178,120,.85)}
   .bg-copy .row2{margin-top:14px}
   @media(max-width:1820px){.bg-copy{display:none}}
-  .feat-panel{position:fixed;top:98px;left:calc(50% - 904px);width:286px;z-index:6;font-family:var(--mono);color:rgba(255,224,202,.6);font-size:11px;letter-spacing:.12em;text-transform:uppercase;line-height:1.7}
+  .feat-panel{order:-1;flex:none;align-self:flex-start;margin:84px 24px 0 0;width:248px;z-index:6;font-family:var(--mono);color:rgba(255,224,202,.6);font-size:11px;letter-spacing:.12em;text-transform:uppercase;line-height:1.7}
   .feat-panel .fh-head{font-size:11px;letter-spacing:.28em;color:rgba(255,178,120,.9);margin-bottom:13px}
   .feat-lines{font-family:var(--mono);text-transform:none;font-size:11px;line-height:1.85;letter-spacing:.02em;color:rgba(255,242,228,.84)}
   .feat-lines .fc-line{margin:2px 0}
@@ -49,7 +49,7 @@
   .feat-lines .sl{color:rgba(255,242,228,.5);font-style:italic}
   .feat-lines .p-d{color:#ffce6a}.feat-lines .p-g{color:#fff}.feat-lines .p-c{color:rgba(150,235,165,.92)}
   .feat-lines .fl{color:rgba(255,205,160,.9)}
-  .feat-hover{margin-top:18px;border:1px solid #ffffff;border-radius:5px;background:#000;padding:11px 13px;max-height:calc(100vh - 250px);overflow-y:auto;line-height:1.6;text-transform:none;font-size:11px;color:var(--orange)}
+  .feat-hover{margin-top:18px;border:1px solid #ffffff;border-radius:5px;background:#000;padding:11px 13px;max-height:calc(100vh - 220px);overflow-y:auto;line-height:1.6;text-transform:none;font-size:11px;color:var(--orange)}
   .feat-hover.empty{display:none}
   .fbwrap{position:fixed;bottom:18px;right:18px;z-index:80;font-family:var(--mono)}
   .fbbtn{display:block;margin-left:auto;background:rgba(0,0,0,.4);border:1px solid var(--edge);color:var(--orange);font-family:var(--mono);font-weight:700;font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:9px 14px;border-radius:8px;cursor:pointer;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
@@ -67,7 +67,7 @@
   .feat-hover .fh-txt{color:var(--orange)}
   .feat-cursor{display:inline-block;width:7px;height:12px;background:#ffd24d;margin-left:3px;vertical-align:-1px;animation:fhblink 1s steps(1) infinite}
   @keyframes fhblink{50%{opacity:0}}
-  @media(max-width:1820px){.feat-panel{display:none}}
+  @media(max-width:1499px){.feat-panel{display:none}}
   .case{position:relative;width:1180px;max-width:100%;border-radius:16px;padding:15px 26px 14px;background:var(--case);border:1px solid var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 18px 36px -24px rgba(255,255,255,.12),0 0 0 1px rgba(255,255,255,.05),0 0 52px rgba(255,255,255,.06)}
 
   .head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
@@ -306,7 +306,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 2.3.0</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 2.3.2</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -1053,14 +1053,17 @@ applyTheme();
     Size:'SIZE. The length of the reverb tail in seconds. Short feels like a room, long like a cavern.'
   };
   document.querySelectorAll('[data-knob]').forEach(el=>{const m=KN[el.dataset.knob];if(m)el.title=m;});
-  const wide=window.matchMedia&&window.matchMedia('(min-width:1821px)').matches;
-  if(wide){document.querySelectorAll('[title]').forEach(el=>{if(el.id==='theme')return;el.dataset.desc=el.title;el.removeAttribute('title');});
-    let last=null,ht=null;
-    document.addEventListener('mouseover',e=>{const t=(e.target&&e.target.closest)?e.target.closest('[data-desc],[data-tip]'):null;const txt=t?(t.dataset.desc||t.dataset.tip):null;if(txt===last)return;last=txt;
-      if(ht){clearInterval(ht);ht=null;}
-      if(!txt){featHover.classList.add('empty');featHover.innerHTML='';return;}
-      featHover.classList.remove('empty');featHover.innerHTML='';const p=document.createElement('span');p.className='f-p';p.textContent='? ';const sp=document.createElement('span');sp.className='fh-txt';featHover.appendChild(p);featHover.appendChild(sp);
-      let i=0;ht=setInterval(()=>{sp.textContent+=txt.slice(i,i+3);i+=3;if(i>=txt.length){clearInterval(ht);ht=null;}},12);});}
+  // route ALL tooltips into the reserved left info panel — never a native cursor tooltip, at any width
+  document.querySelectorAll('[title]').forEach(el=>{const t=el.getAttribute('title');if(t){el.dataset.desc=t;el.removeAttribute('title');}});
+  let last=null,ht=null;
+  document.addEventListener('mouseover',e=>{let t=(e.target&&e.target.closest)?e.target.closest('[data-desc],[data-tip],[title]'):null;
+    if(t&&t.getAttribute&&t.getAttribute('title')){const tt=t.getAttribute('title');if(tt)t.dataset.desc=tt;t.removeAttribute('title');}
+    const txt=t?(t.dataset.desc||t.dataset.tip):null;if(txt===last)return;last=txt;
+    if(ht){clearInterval(ht);ht=null;}
+    if(!featHover)return;
+    if(!txt){featHover.classList.add('empty');featHover.innerHTML='';return;}
+    featHover.classList.remove('empty');featHover.innerHTML='';const p=document.createElement('span');p.className='f-p';p.textContent='? ';const sp=document.createElement('span');sp.className='fh-txt';featHover.appendChild(p);featHover.appendChild(sp);
+    let i=0;ht=setInterval(()=>{sp.textContent+=txt.slice(i,i+3);i+=3;if(i>=txt.length){clearInterval(ht);ht=null;}},12);});
 })();
 (function(){const $=id=>document.getElementById(id);const panel=$('fbpanel'),st=$('fbStatus');
   if(!panel||!$('fbBtn'))return;
