@@ -32,6 +32,13 @@
   *{box-sizing:border-box}
   html,body{margin:0;min-height:100%}
   body{font-family:var(--mono);color:var(--ink);background:radial-gradient(1100px 760px at 50% -12%,#343c48,#1c2027 76%) fixed;min-height:100vh;display:flex;justify-content:center;padding:14px 22px 0}
+  #hubLink{position:fixed;top:14px;left:16px;z-index:62;display:flex;flex-direction:column;gap:2px;text-decoration:none;font-family:var(--mono);padding:11px 16px;border-radius:11px;background:linear-gradient(180deg,rgba(232,116,58,.22),rgba(232,116,58,.10));border:1.5px solid var(--orange);box-shadow:0 0 22px rgba(232,116,58,.35),inset 0 1px 0 rgba(255,255,255,.12);cursor:pointer;transition:transform .14s,box-shadow .14s,background .14s}
+  #hubLink:hover{transform:translateY(-2px);background:linear-gradient(180deg,rgba(232,116,58,.38),rgba(232,116,58,.18));box-shadow:0 0 32px rgba(232,116,58,.6),inset 0 1px 0 rgba(255,255,255,.2)}
+  #hubLink .hub-top{display:flex;align-items:center;gap:7px;color:#ffd9bf;font-weight:700;font-size:14px;letter-spacing:.16em;text-transform:uppercase;text-shadow:0 0 10px rgba(232,116,58,.5)}
+  #hubLink .hub-arr{font-size:15px;transition:transform .14s}
+  #hubLink:hover .hub-arr{transform:translate(3px,-3px)}
+  #hubLink .hub-sub{color:var(--orange);font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.9}
+  @media(max-width:1240px){#hubLink{top:10px;left:10px;padding:8px 12px}#hubLink .hub-top{font-size:12px}}
   .themetoggle{position:fixed;top:14px;right:18px;z-index:60;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;color:#ffd9bf;background:rgba(0,0,0,.32);border:1px solid rgba(255,200,150,.28);border-radius:8px;padding:8px 12px;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
   .themetoggle:hover{background:rgba(0,0,0,.46)}
   .bg-copy{position:fixed;top:50%;transform:translateY(-50%);max-width:240px;font-size:11px;line-height:1.75;letter-spacing:.13em;text-transform:uppercase;color:rgba(200,212,228,.42);z-index:5;pointer-events:none}
@@ -41,7 +48,7 @@
   .bg-copy .row2{margin-top:14px}
   @media(max-width:1820px){.bg-copy{display:none}}
   .feat-panel{position:fixed;top:98px;left:calc(50% - 904px);width:286px;z-index:6;font-family:var(--mono);color:rgba(255,224,202,.6);font-size:11px;letter-spacing:.12em;text-transform:uppercase;line-height:1.7}
-  .feat-panel .fh-head{font-size:11px;letter-spacing:.28em;color:rgba(255,178,120,.9);margin-bottom:4px}
+  .feat-panel .fh-head{font-size:11px;letter-spacing:.28em;color:rgba(255,178,120,.9);margin-bottom:13px}
   .fh-link{color:rgba(255,178,120,.95);text-decoration:none;cursor:pointer;transition:filter .15s}
   .fh-link:hover{filter:brightness(1.4)}
   .fh-link:hover .corp-arrow{transform:translate(2px,-2px)}
@@ -243,7 +250,11 @@
 </style>
 
 <button id="theme" class="themetoggle">&#9681; Dark</button>
-<aside class="feat-panel" id="featPanel"><div class="fh-head"><a class="fh-link" href="https://snadbreugen.github.io/snad-industries/" target="_blank" rel="noopener">SNAD INDUSTRIES <span class="corp-arrow">&#8599;</span></a> // SNAMPLER</div><div class="corp-sub fh-rack">// the full rack</div><div class="feat-lines" id="featLines"></div><div class="feat-hover empty" id="featHover"></div></aside>
+<a id="hubLink" href="https://snadbreugen.github.io/snad-industries/" target="_blank" rel="noopener" title="Open the Snad Industries hub — all the tools in one place">
+  <span class="hub-top">SNAD INDUSTRIES <span class="hub-arr">&#8599;</span></span>
+  <span class="hub-sub">// the full rack</span>
+</a>
+<aside class="feat-panel" id="featPanel"><div class="fh-head">SNAD INDUSTRIES // SNAMPLER</div><div class="feat-lines" id="featLines"></div><div class="feat-hover empty" id="featHover"></div></aside>
 <div class="case">
   <div class="head">
     <div>
@@ -315,7 +326,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 2.4.1</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 2.4.2</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
