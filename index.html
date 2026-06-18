@@ -245,6 +245,8 @@
   .wave{width:100%;height:84px;display:block;background:var(--lane);border:1px solid var(--edge);border-radius:6px;cursor:ew-resize}
   .smprow{display:flex;gap:18px;align-items:flex-start;margin-top:12px;flex-wrap:wrap}
   #gran-knobs{display:none;gap:18px;border-left:1px solid var(--edge);padding-left:18px}
+  .gran-tog{display:inline-flex;align-items:center;gap:8px}
+  .gran-tog .pwrdot{margin:0}
   .seg{display:flex;gap:7px}
   input[type=file]{display:none}
 </style>
@@ -326,14 +328,13 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 2.4.2</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 2.4.3</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
       <h4>Sample // Editor
         <span class="seg" style="margin-left:auto">
-          <button class="btn sm on" id="m-classic" title="Classic varispeed: pitch by playback speed — length changes with pitch (the sampler sound)">Classic</button>
-          <button class="btn sm" id="m-gran" title="Granular: rebuilds the sound from grains — pitch and time independent (see Scan)">Granular</button>
+          <button class="btn sm gran-tog" id="m-gran" title="Granular engine on/off: off = classic varispeed (the sampler sound), on = rebuilt from grains, pitch and time independent (see Scan)"><span class="pwrdot"></span>Granular</button>
           <button class="btn sm" id="m-rev" title="Reverse the slice">Reverse</button>
           <button class="btn sm" id="smpclose" style="margin-left:10px">Close &#10005;</button>
         </span>
@@ -663,8 +664,8 @@ function syncFxUI(){const q=sel=>document.querySelector(sel);
   const setDot=(fx,on)=>{const d=q('.fxmod[data-fx="'+fx+'"] .pwrdot');if(d)d.classList.toggle('on',!!on);};
   setDot('comp',state.fx.compOn);setDot('mod',state.fx.mod.on);setDot('delay',state.fx.delay.on);setDot('rev',state.fx.rev.on);
   const ms=q('.fxmod[data-fx="mod"] .modsel');if(ms)ms.value=state.fx.mod.type;
-  const mc=$('m-classic'),mg=$('m-gran'),mr=$('m-rev'),gk=$('gran-knobs');
-  if(mc&&mg){const gran=state.smp.mode==='granular';mc.classList.toggle('on',!gran);mg.classList.toggle('on',gran);if(gk)gk.style.display=gran?'flex':'none';}
+  const mg=$('m-gran'),mr=$('m-rev'),gk=$('gran-knobs');
+  if(mg){const gran=state.smp.mode==='granular';mg.classList.toggle('on',gran);const d=mg.querySelector('.pwrdot');if(d)d.classList.toggle('on',gran);if(gk)gk.style.display=gran?'flex':'none';}
   if(mr)mr.classList.toggle('on',!!state.smp.reverse);}
 function pushUndo(){undoStack.push(snapshot());redoStack=[];}
 function beginEdit(){pendingSnap=snapshot();}
@@ -954,8 +955,7 @@ function buildSampleEditor(){const row=document.getElementById('smprow');
   g.appendChild(makeKnob({label:'Density',tip:'Grains per second: higher overlaps more for a thicker, smoother cloud',min:2,max:80,value:state.smp.gDens,fmt:v=>Math.round(v)+'/s',read:()=>state.smp.gDens,onInput:v=>{state.smp.gDens=v;}}));
   g.appendChild(makeKnob({label:'Spray',tip:'Random scatter of the read position: adds shimmer and movement',min:0,max:1,value:state.smp.gSpray,fmt:v=>v.toFixed(2),read:()=>state.smp.gSpray,onInput:v=>{state.smp.gSpray=v;}}));
   g.appendChild(makeKnob({label:'Scan',tip:'Decouples pitch from time: 0 = freeze, +1 = play through at tempo, negative = reverse scan',min:-1,max:1,value:state.smp.gScan,fmt:v=>(v>0?'+':'')+v.toFixed(2)+'x',read:()=>state.smp.gScan,onInput:v=>{state.smp.gScan=v;}}));
-  document.getElementById('m-classic').onclick=()=>{pushUndo();state.smp.mode='classic';document.getElementById('m-classic').classList.add('on');document.getElementById('m-gran').classList.remove('on');document.getElementById('gran-knobs').style.display='none';drawWave();updateSmpCap();};
-  document.getElementById('m-gran').onclick=()=>{pushUndo();state.smp.mode='granular';document.getElementById('m-gran').classList.add('on');document.getElementById('m-classic').classList.remove('on');document.getElementById('gran-knobs').style.display='flex';drawWave();updateSmpCap();};
+  document.getElementById('m-gran').onclick=()=>{pushUndo();const on=state.smp.mode!=='granular';state.smp.mode=on?'granular':'classic';const g=document.getElementById('m-gran');g.classList.toggle('on',on);const d=g.querySelector('.pwrdot');if(d)d.classList.toggle('on',on);document.getElementById('gran-knobs').style.display=on?'flex':'none';drawWave();updateSmpCap();};
   document.getElementById('m-rev').onclick=()=>{pushUndo();state.smp.reverse=!state.smp.reverse;document.getElementById('m-rev').classList.toggle('on',state.smp.reverse);updateSmpCap();};
   const cv=document.getElementById('wave');
   cv.onpointerdown=e=>{if(!state.buffer)return;const rect=cv.getBoundingClientRect();cv.setPointerCapture(e.pointerId);
@@ -1042,8 +1042,7 @@ applyTheme();
     mklS:'LOOP / EXPORT START. Left edge of the range that loops on playback and gets rendered on export. Drag it at the top or on the line in the grid, it snaps to the beat.',
     mkE:'LOOP / EXPORT END. Right edge of the range that loops on playback and gets rendered on export. Drag it at the top or on the line in the grid, it snaps to the beat.',
     mklE:'LOOP / EXPORT END. Right edge of the range that loops on playback and gets rendered on export. Drag it at the top or on the line in the grid, it snaps to the beat.',
-    'm-classic':'CLASSIC MODE. Varispeed playback: pitch by changing speed. Higher notes play faster and shorter, lower notes slower and longer. The raw, characterful sampler sound.',
-    'm-gran':'GRANULAR MODE. Rebuilds the sound from tiny grains so pitch and time become independent. Use the Scan knob to play through, freeze or stretch the sample while pitching freely.',
+    'm-gran':'GRANULAR ON/OFF. Off = classic varispeed (pitch by speed, the raw sampler sound). On = rebuilt from tiny grains so pitch and time are independent \u2014 use Scan to play through, freeze or stretch while pitching freely.',
     'm-rev':'REVERSE. Plays the slice backwards.'
   };
   Object.keys(MAN).forEach(id=>{const el=document.getElementById(id);if(el)el.title=MAN[id];});
