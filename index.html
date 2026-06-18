@@ -40,8 +40,12 @@
   .bg-copy h5{margin:0 0 9px;font-size:11px;letter-spacing:.28em;color:rgba(255,178,120,.85)}
   .bg-copy .row2{margin-top:14px}
   @media(max-width:1820px){.bg-copy{display:none}}
-  .feat-panel{order:-1;flex:none;align-self:flex-start;margin:84px 24px 0 0;width:248px;z-index:6;font-family:var(--mono);color:rgba(255,224,202,.6);font-size:11px;letter-spacing:.12em;text-transform:uppercase;line-height:1.7}
-  .feat-panel .fh-head{font-size:11px;letter-spacing:.28em;color:rgba(255,178,120,.9);margin-bottom:13px}
+  .feat-panel{position:fixed;top:98px;left:calc(50% - 904px);width:286px;z-index:6;font-family:var(--mono);color:rgba(255,224,202,.6);font-size:11px;letter-spacing:.12em;text-transform:uppercase;line-height:1.7}
+  .feat-panel .fh-head{font-size:11px;letter-spacing:.28em;color:rgba(255,178,120,.9);margin-bottom:4px}
+  .fh-link{color:rgba(255,178,120,.95);text-decoration:none;cursor:pointer;transition:filter .15s}
+  .fh-link:hover{filter:brightness(1.4)}
+  .fh-link:hover .corp-arrow{transform:translate(2px,-2px)}
+  .fh-rack{margin:0 0 14px}
   .feat-lines{font-family:var(--mono);text-transform:none;font-size:11px;line-height:1.85;letter-spacing:.02em;color:rgba(255,242,228,.84)}
   .feat-lines .fc-line{margin:2px 0}
   .feat-lines .kw{color:#ffd24d;font-weight:700}
@@ -67,11 +71,16 @@
   .feat-hover .fh-txt{color:var(--orange)}
   .feat-cursor{display:inline-block;width:7px;height:12px;background:#ffd24d;margin-left:3px;vertical-align:-1px;animation:fhblink 1s steps(1) infinite}
   @keyframes fhblink{50%{opacity:0}}
-  @media(max-width:1499px){.feat-panel{display:none}}
+  @media(max-width:1820px){.feat-panel{display:none}}
   .case{position:relative;width:1180px;max-width:100%;border-radius:16px;padding:15px 26px 14px;background:var(--case);border:1px solid var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 18px 36px -24px rgba(255,255,255,.12),0 0 0 1px rgba(255,255,255,.05),0 0 52px rgba(255,255,255,.06)}
 
   .head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
   .corp{display:flex;align-items:center;gap:8px;color:var(--orange);font-size:11px;font-weight:700;letter-spacing:.32em;text-transform:uppercase}
+  a.corp{text-decoration:none;cursor:pointer;transition:filter .15s}
+  a.corp:hover{filter:brightness(1.35)}
+  .corp-arrow{font-size:12px;transition:transform .15s}
+  a.corp:hover .corp-arrow{transform:translate(2px,-2px)}
+  .corp-sub{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,224,202,.5);margin-top:4px}
   .eqglyph{display:inline-flex;align-items:flex-end;gap:2px;height:12px}
   .eqglyph i{width:2px;background:var(--orange)}
   .eqglyph i:nth-child(1){height:5px}.eqglyph i:nth-child(2){height:10px}.eqglyph i:nth-child(3){height:4px}.eqglyph i:nth-child(4){height:12px}.eqglyph i:nth-child(5){height:7px}
@@ -234,7 +243,7 @@
 </style>
 
 <button id="theme" class="themetoggle">&#9681; Dark</button>
-<aside class="feat-panel" id="featPanel"><div class="fh-head">SNAD INDUSTRIES // SNAMPLER</div><div class="feat-lines" id="featLines"></div><div class="feat-hover empty" id="featHover"></div></aside>
+<aside class="feat-panel" id="featPanel"><div class="fh-head"><a class="fh-link" href="https://snadbreugen.github.io/snad-industries/" target="_blank" rel="noopener">SNAD INDUSTRIES <span class="corp-arrow">&#8599;</span></a> // SNAMPLER</div><div class="corp-sub fh-rack">// the full rack</div><div class="feat-lines" id="featLines"></div><div class="feat-hover empty" id="featHover"></div></aside>
 <div class="case">
   <div class="head">
     <div>
@@ -306,7 +315,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 2.3.2</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 2.4.1</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
