@@ -13,18 +13,18 @@
     --statusbg:#16130f; --st-name:#efe7d8; --st-acc:#E8743A;
     --knob1:#ffffff; --knob2:#ece6da; --knob3:#ddd5c4; --knobedge:#cfc7b4; --knobhi:#fff; --tickring:#d6cebd;
     --lane:#F3EFE6; --lane2:#ECE6D8; --laneline:#ece6d9; --keyw:#fbf9f3; --keyb:#26221c; --keytxt:#5d574a; --keybtxt:#b8b0a0; --keyline:#e6e0d2;
-    --vellanebg:#efeadf; --meterbg:#e0d9ca; --rulerline:#d7cfbe;
+    --vellanebg:#efeadf; --meterbg:#e0d9ca; --rulerline:#d7cfbe; --field:#FBF9F3;
     --gl1:rgba(60,55,45,.10); --gl2:rgba(60,55,45,.18); --gl3:rgba(60,55,45,.32); --wavestroke:#1f1c17;
     --soft:0 1px 2px rgba(40,34,24,.08),0 2px 6px rgba(40,34,24,.05);
     --mono:'Space Mono',monospace; --disp:'Anton','Arial Black',sans-serif;
   }
   body.dark{
     --bg:#0c0b0a; --case:#1a1916; --surface:#222019; --surface2:#1a1916; --edge:#34302a;
-    --ink:#ece7db; --ink2:#a59e8d; --dim:#6f695b;
+    --ink:#ece7db; --ink2:#a59e8d; --dim:#948c7b;
     --statusbg:#0b0b09; --st-name:#5fd96b; --st-acc:#5fd96b;
     --knob1:#3a352d; --knob2:#26231d; --knob3:#171511; --knobedge:#403a31; --knobhi:rgba(255,255,255,.08); --tickring:#3c362d;
     --lane:#1c1b17; --lane2:#211f1a; --laneline:#100f0c; --keyw:#d8d1c2; --keyb:#1a1813; --keytxt:#2a2722; --keybtxt:#8a8270; --keyline:#0e0d0b;
-    --vellanebg:#161512; --meterbg:#2c281f; --rulerline:#2d2a23;
+    --vellanebg:#161512; --meterbg:#2c281f; --rulerline:#2d2a23; --field:#0c0b0a;
     --gl1:rgba(255,255,255,.05); --gl2:rgba(255,255,255,.10); --gl3:rgba(255,255,255,.20); --wavestroke:#E8743A;
     --soft:0 1px 2px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.3);
   }
@@ -68,7 +68,7 @@
   .fbpanel{display:none;width:300px;background:#000;border:1px solid #fff;border-radius:10px;padding:16px;margin-bottom:9px;box-shadow:0 14px 40px rgba(0,0,0,.55)}
   .fbpanel.open{display:block}
   .fbttl{font-size:10px;letter-spacing:.2em;color:var(--orange);margin-bottom:14px;text-transform:uppercase}
-  .fbf{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--edge);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 9px;margin-bottom:8px;outline:none;border-radius:7px}
+  .fbf{width:100%;box-sizing:border-box;background:var(--field);border:1px solid var(--edge);color:var(--ink);font-family:var(--mono);font-size:11px;padding:8px 9px;margin-bottom:8px;outline:none;border-radius:7px}
   textarea.fbf{resize:none}
   .fbrow{display:flex;gap:8px}
   .fbsend{flex:1;background:var(--orange);color:#1a1208;border:none;font-family:var(--mono);font-weight:700;font-size:11px;letter-spacing:.12em;padding:9px;cursor:pointer;border-radius:7px}
@@ -87,6 +87,13 @@
   #wipBox .wip-body{font-size:11px;line-height:1.7;letter-spacing:.04em;color:rgba(255,224,202,.82);text-transform:uppercase;margin-bottom:13px}
   #wipBox .wip-fb-btn{display:block;width:100%;box-sizing:border-box;background:var(--orange);color:#1a1208;border:none;border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.16em;padding:9px;cursor:pointer;box-shadow:0 0 16px rgba(232,116,58,.35);transition:box-shadow .14s}
   #wipBox .wip-fb-btn:hover{box-shadow:0 0 24px rgba(232,116,58,.6)}
+  #wipBox .fix-card{margin-top:11px;background:rgba(0,0,0,.34);border:1px solid rgba(232,116,58,.28);border-radius:10px;padding:14px 16px;box-shadow:0 0 20px rgba(0,0,0,.4)}
+  #wipBox .fix-tag{font-size:11px;font-weight:700;letter-spacing:.22em;color:var(--orange);margin-bottom:10px;text-transform:uppercase}
+  #wipBox .fix-item{font-size:10px;line-height:1.65;letter-spacing:.05em;color:rgba(255,224,202,.8);text-transform:uppercase;margin-bottom:9px;padding-left:13px;position:relative}
+  #wipBox .fix-item:before{content:'\2713';position:absolute;left:0;top:0;color:var(--orange);font-weight:700}
+  #wipBox .fix-item b{color:rgba(255,242,228,.95);font-weight:700}
+  #wipBox .fix-thx{margin-top:12px;padding-top:11px;border-top:1px solid rgba(232,116,58,.22);font-size:10px;line-height:1.65;letter-spacing:.08em;color:rgba(255,205,160,.9);text-transform:uppercase}
+  #wipBox .fix-thx span{color:var(--orange);font-weight:700}
   .case{position:relative;width:1180px;max-width:100%;border-radius:16px;padding:15px 26px 14px;background:var(--case);border:1px solid var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 18px 36px -24px rgba(255,255,255,.12),0 0 0 1px rgba(255,255,255,.05),0 0 52px rgba(255,255,255,.06)}
 
   .head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
@@ -157,6 +164,10 @@
   .screen{position:relative;border-radius:11px;padding:10px;background:var(--surface2);border:1px solid var(--edge);box-shadow:var(--soft)}
   .panel-tag{position:absolute;top:-9px;right:14px;background:var(--surface2);padding:0 7px;font-size:10px;letter-spacing:.2em;color:var(--orange);z-index:9}
   .rollwrap{display:flex;gap:8px;align-items:stretch}
+  #noSmpOv{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;pointer-events:none;text-align:center;font-family:var(--mono);text-transform:uppercase;padding:18px 26px;border-radius:11px;border:1.5px solid var(--orange);background:rgba(12,11,10,.82);box-shadow:0 0 30px rgba(232,116,58,.28);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+  #noSmpOv .ns-a{font-family:var(--disp);font-size:26px;letter-spacing:.06em;color:var(--orange);line-height:1.1}
+  #noSmpOv .ns-b{font-size:11px;letter-spacing:.18em;color:rgba(255,217,191,.85);margin-top:8px}
+  #noSmpOv.hide{display:none}
   .scroll{overflow-x:auto;overflow-y:auto;position:relative;width:100%}
   .scroll::-webkit-scrollbar{width:0;height:0}
   .rrow{display:flex}
@@ -208,7 +219,7 @@
   .rack{display:flex;gap:14px;margin-top:11px;flex-wrap:wrap}
   .fxbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;color:var(--dim);font-size:11px;letter-spacing:.18em;text-transform:uppercase}
   #chainlist{display:flex;flex-direction:column;gap:8px;margin:8px 0}
-  .chrow{display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:11px 14px;box-shadow:var(--soft)}
+  .chrow{display:flex;align-items:center;gap:12px;background:var(--field);border:1px solid var(--edge);border-radius:10px;padding:11px 14px;box-shadow:var(--soft)}
   .chrow .chnum{font-family:var(--mono);font-size:12px;color:var(--dim);width:16px}
   .chrow .chname{font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:13px;color:var(--ink)}
   .chrow .chstate{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
@@ -217,7 +228,7 @@
   .charrows button{font-family:var(--mono);font-weight:700;font-size:12px;cursor:pointer;color:var(--ink);background:var(--surface);border:1px solid var(--edge);border-radius:7px;width:30px;height:28px;line-height:1;box-shadow:var(--soft)}
   .charrows button:disabled{opacity:.3;cursor:default}
   .chfixed{display:flex;align-items:center;gap:10px;padding:7px 14px;color:var(--dim);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
-  .aturl{flex:1;font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--ink);border:1px solid var(--edge);border-radius:9px;padding:11px 12px}
+  .aturl{flex:1;font-family:var(--mono);font-size:12px;background:var(--field);color:var(--ink);border:1px solid var(--edge);border-radius:9px;padding:11px 12px}
   .atitem{font-family:var(--mono);font-weight:700;letter-spacing:.08em;font-size:12px;text-transform:uppercase;color:var(--ink);background:var(--surface);border:1px solid var(--edge);border-radius:9px;padding:11px 13px;margin:6px 0;cursor:pointer;box-shadow:var(--soft)}
   .atitem:hover{border-color:var(--orange)}
   #atUplink.on{border-color:var(--orange);color:var(--orange)}
@@ -271,6 +282,13 @@
     <div class="wip-body">SNAMPLER is still being built. your feedback shapes what it becomes, so if something feels off, tell me.</div>
     <button id="wipFeedbackBtn" class="wip-fb-btn">// SEND FEEDBACK</button>
   </div>
+  <div class="fix-card">
+    <div class="fix-tag">// Latest fixes</div>
+    <div class="fix-item"><b>Play did nothing.</b> It stays locked until a sample is loaded, and the roll now says so instead of failing quietly.</div>
+    <div class="fix-item"><b>Dark text on dark fields.</b> Light mode used the page background for input fields, so anything you typed was invisible. Fields have their own surface now.</div>
+    <div class="fix-item"><b>Tooltips on smaller screens.</b> Below 1821px the info panel is hidden and every tooltip went with it. They come back as normal hover tips.</div>
+    <div class="fix-thx">Thanks <span>bruh</span> for the report. You left no email, so this is the reply. Keep them coming.</div>
+  </div>
 </aside>
 <div class="case">
   <div class="head">
@@ -322,6 +340,7 @@
       </div>
       <div class="rrow"><div class="vellabel">VEL</div><div class="vellane" id="vellane"></div></div>
     </div><div class="voverview" id="voverview"><div class="vthumb" id="vthumb"><span class="vgrip vt">&#8597;</span><span class="vgrip vb">&#8597;</span></div></div></div>
+    <div id="noSmpOv"><div class="ns-a">No Sample Loaded</div><div class="ns-b">Import WAV or Import MIDI to start</div></div>
   </div>
   <div class="dimcap">DBL-CLICK = ADD / DELETE NOTE &middot; DRAG EDGE = LENGTH &middot; DRAG BODY = MOVE &middot; DRAG EMPTY = MULTI-SELECT &middot; CTRL+DRAG = COPY &middot; CLICK KEY = PREVIEW</div>
 
@@ -343,7 +362,7 @@
     <div class="outlbl">Output</div>
   </div>
 
-  <div class="foot"><span>REV 2.5.0</span><span>The Signal Continues ///</span></div>
+  <div class="foot"><span>REV 2.5.2</span><span>The Signal Continues ///</span></div>
 
   <div class="modal" id="smpmodal">
     <div class="modal-card">
@@ -767,12 +786,13 @@ function startMeter(){if(meterRAF)return;const buf=new Uint8Array(meterNode.fftS
     const rms=Math.sqrt(sum/buf.length),target=clamp(rms*175,0,100);meterVal=target>meterVal?target:meterVal*0.86+target*0.14;fill.style.width=meterVal.toFixed(1)+'%';};
   loop();}
 function jumpStart(){$('scroll').scrollLeft=0;if(state.playing){stop();play();}else{setPlayhead(0);}}
-function play(){if(!state.buffer){$('st-name').textContent='LOAD A SAMPLE';return;}if(state.playing)return;
+function syncNoSample(){const has=!!state.buffer;const ov=document.getElementById('noSmpOv');if(ov)ov.classList.toggle('hide',has);const pb=document.getElementById('play');if(pb&&!state.playing)pb.disabled=!has;}
+function play(){if(!state.buffer){$('st-name').textContent='LOAD A SAMPLE';syncNoSample();return;}if(state.playing)return;
   state.playing=true;ac().resume();$('play').disabled=true;$('stop').disabled=false;$('st-state').textContent='PLAYING';playT0=ac().currentTime;$('playhead').style.display='block';
   const sch=()=>{if(!state.playing)return;loopT=ac().currentTime;scheduleWindow(ctx,liveFx,loopT,sources);if(state.loop)loopTimer=setTimeout(sch,loopSec()*1000);};
   sch();tick();}
 function stop(){state.playing=false;clearTimeout(loopTimer);cancelAnimationFrame(raf);sources.forEach(s=>{try{s.stop()}catch(e){}});sources=[];
-  $('playhead').style.display='none';$('play').disabled=false;$('stop').disabled=true;$('st-state').textContent='READY';var te=document.getElementById('st-time');if(te)te.textContent='00:00.0';}
+  $('playhead').style.display='none';$('play').disabled=!state.buffer;$('stop').disabled=true;$('st-state').textContent='READY';var te=document.getElementById('st-time');if(te)te.textContent='00:00.0';}
 $('play').onclick=play;$('stop').onclick=stop;$('tostart').onclick=jumpStart;
 $('grid').onchange=e=>{state.snap=+e.target.value;buildRoll();};
 window.addEventListener('keydown',ev=>{const t=document.activeElement;if(t&&(t.tagName==='INPUT'||t.tagName==='SELECT'))return;if(ev.key==='Home'){ev.preventDefault();jumpStart();}});
@@ -796,7 +816,7 @@ async function exportToDisk(){if(!state.buffer)return;if(state.atLocked){$('st-s
   catch(e){$('st-state').textContent='EXPORT FAILED';}}
 $('export').onclick=()=>{if(!state.buffer)return;$('expname').value='';$('expname').placeholder=atDefaultLoopName();var dd=$('expDisk');if(dd){dd.disabled=!!state.atLocked;dd.title=state.atLocked?'Disabled: this sample belongs to another Audiotool user \u2014 keep it on-platform via To Audiotool':'';}['visPrivate','visPublic'].forEach(id=>{const b=$(id);if(b)b.classList.toggle('picked',id===(atVisibility==='unlisted'?'visPrivate':'visPublic'));});$('expmodal').classList.add('show');};
 
-function installBuffer(buf,name,origin,owned){state.buffer=buf;state.fromAT=(origin==='at');state.atLocked=(origin==='at'&&!owned);state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;updateSmpCap();drawMain();updateMainInfo();}
+function installBuffer(buf,name,origin,owned){state.buffer=buf;state.fromAT=(origin==='at');state.atLocked=(origin==='at'&&!owned);state.sampleName=(name||'SAMPLE').slice(0,16).toUpperCase();$('st-name').textContent=state.sampleName;$('export').disabled=false;state.smp.startFrac=0;state.smp.endFrac=1;buildReversed();state.peaks=null;$('editbtn').disabled=false;updateSmpCap();drawMain();updateMainInfo();syncNoSample();}
 
 // ---------- Audiotool (Nexus SDK) ----------
 const AT_CLIENT_ID='6ca4ce9a-461d-44a3-ac32-145930ab799a';
@@ -1034,6 +1054,7 @@ $('loop').classList.add('on');
 
 
 let dark=true;function applyTheme(){document.body.classList.toggle('dark',dark);const t=document.getElementById('theme');if(t)t.innerHTML=(dark?'\u25d1':'\u25d0')+' '+(dark?'Dark':'Light');buildRoll();drawMain();drawWave();}
+try{syncNoSample();}catch(e){}
 const _tb=document.getElementById('theme');if(_tb)_tb.onclick=()=>{dark=!dark;applyTheme();};
 applyTheme();
 (function(){const featLines=document.getElementById('featLines'),featHover=document.getElementById('featHover');if(!featLines)return;
@@ -1091,7 +1112,9 @@ applyTheme();
   document.querySelectorAll('[title]').forEach(el=>{const t=el.getAttribute('title');if(t){el.dataset.desc=t;el.removeAttribute('title');}});
   let last=null,ht=null;
   document.addEventListener('mouseover',e=>{let t=(e.target&&e.target.closest)?e.target.closest('[data-desc],[data-tip],[title]'):null;
-    if(t&&t.getAttribute&&t.getAttribute('title')){const tt=t.getAttribute('title');if(tt)t.dataset.desc=tt;t.removeAttribute('title');}
+    const panelOn=!!(window.matchMedia&&window.matchMedia('(min-width:1821px)').matches);
+    if(panelOn&&t&&t.getAttribute&&t.getAttribute('title')){const tt=t.getAttribute('title');if(tt)t.dataset.desc=tt;t.removeAttribute('title');}
+    if(!panelOn){if(t&&t.dataset&&t.dataset.desc&&!t.getAttribute('title'))t.setAttribute('title',t.dataset.desc);if(t&&t.dataset&&t.dataset.tip&&!t.getAttribute('title'))t.setAttribute('title',t.dataset.tip);}
     const txt=t?(t.dataset.desc||t.dataset.tip):null;if(txt===last)return;last=txt;
     if(ht){clearInterval(ht);ht=null;}
     if(!featHover)return;
